@@ -1,7 +1,9 @@
+"use strict";
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
 var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, { get: all[name], enumerable: true });
@@ -15,6 +17,7 @@ var __copyProps = (to, from, except, desc) => {
   return to;
 };
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
+var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 
 // src/main.ts
 var main_exports = {};
@@ -6715,32 +6718,37 @@ var stepLexer = new Lexer(allTokens, {
   positionTracking: "onlyOffset"
 });
 function findBraceBeforeSigil(tokens, from) {
+  var _a;
   for (let i = from; i < tokens.length; i++) {
-    if (tokens[i].tokenType === LBrace) return i;
-    if (tokens[i].tokenType === AtSign || tokens[i].tokenType === HashSign)
-      return -1;
-    if (tokens[i].tokenType === TildeSign && i > from && tokens[i - 1].tokenType === Space)
+    const tok = tokens[i];
+    if (tok === void 0) break;
+    if (tok.tokenType === LBrace) return i;
+    if (tok.tokenType === AtSign || tok.tokenType === HashSign) return -1;
+    if (tok.tokenType === TildeSign && i > from && ((_a = tokens[i - 1]) == null ? void 0 : _a.tokenType) === Space)
       return -1;
   }
   return -1;
 }
 function findMatchingRBrace(tokens, from) {
+  var _a;
   for (let i = from; i < tokens.length; i++) {
-    if (tokens[i].tokenType === RBrace) return i;
+    if (((_a = tokens[i]) == null ? void 0 : _a.tokenType) === RBrace) return i;
   }
   return -1;
 }
 function collectImages(tokens, start, end) {
+  var _a, _b;
   let s = "";
   for (let i = start; i < end; i++) {
-    s += tokens[i].image;
+    s += (_b = (_a = tokens[i]) == null ? void 0 : _a.image) != null ? _b : "";
   }
   return s;
 }
 function parseQuantityBody(tokens, start, end) {
+  var _a;
   let percentIdx = -1;
   for (let i = start; i < end; i++) {
-    if (tokens[i].tokenType === Percent) {
+    if (((_a = tokens[i]) == null ? void 0 : _a.tokenType) === Percent) {
       percentIdx = i;
       break;
     }
@@ -6765,6 +6773,7 @@ function parseTokenStream(tokens, ingredients, cookware, timers) {
   };
   while (pos < tokens.length) {
     const tok = tokens[pos];
+    if (tok === void 0) break;
     if (tok.tokenType === AtSign) {
       const braceIdx = findBraceBeforeSigil(tokens, pos + 1);
       if (braceIdx !== -1) {
@@ -6784,9 +6793,10 @@ function parseTokenStream(tokens, ingredients, cookware, timers) {
           continue;
         }
       }
-      if (pos + 1 < tokens.length && tokens[pos + 1].tokenType === Word) {
+      const nextTok = tokens[pos + 1];
+      if ((nextTok == null ? void 0 : nextTok.tokenType) === Word) {
         flush();
-        const name = tokens[pos + 1].image;
+        const name = nextTok.image;
         const ingredient = { name, quantity: "", units: "" };
         ingredients.push(ingredient);
         result.push({ type: "ingredient", value: name, ref: ingredient });
@@ -6811,9 +6821,10 @@ function parseTokenStream(tokens, ingredients, cookware, timers) {
           continue;
         }
       }
-      if (pos + 1 < tokens.length && tokens[pos + 1].tokenType === Word) {
+      const nextTok = tokens[pos + 1];
+      if ((nextTok == null ? void 0 : nextTok.tokenType) === Word) {
         flush();
-        const name = tokens[pos + 1].image;
+        const name = nextTok.image;
         const cw = { name };
         cookware.push(cw);
         result.push({ type: "cookware", value: name, ref: cw });
@@ -6865,6 +6876,7 @@ function tokenizeCooklangLine(line, ingredients, cookware, timers) {
   return parseTokenStream(lexResult.tokens, ingredients, cookware, timers);
 }
 function parseFrontmatter(text) {
+  var _a;
   const metadata = {};
   const trimmed = text.trimStart();
   if (!trimmed.startsWith("---")) {
@@ -6890,9 +6902,9 @@ function parseFrontmatter(text) {
       }
     }
     const match = /^([\w.-]+):\s*(.*)/.exec(line);
-    if (match) {
+    if ((match == null ? void 0 : match[1]) !== void 0) {
       currentKey = match[1];
-      const val = match[2];
+      const val = (_a = match[2]) != null ? _a : "";
       if (val === "|" || val === ">") {
         inMultiline = true;
         currentValue = "";
@@ -6946,6 +6958,7 @@ function parseCooklangBody(body) {
   return { ingredients, cookware, timers, sections };
 }
 function parsePlainTextBody(body) {
+  var _a, _b, _c;
   const ingredients = [];
   const cookware = [];
   const timers = [];
@@ -6974,9 +6987,9 @@ function parsePlainTextBody(body) {
         trimmed
       );
       if (ingMatch) {
-        const qty = (ingMatch[1] || "").trim();
-        const unit = (ingMatch[2] || "").trim();
-        const name = (ingMatch[3] || trimmed).trim();
+        const qty = ((_a = ingMatch[1]) != null ? _a : "").trim();
+        const unit = ((_b = ingMatch[2]) != null ? _b : "").trim();
+        const name = ((_c = ingMatch[3]) != null ? _c : trimmed).trim();
         const ingredient = { name, quantity: qty, units: unit };
         ingredients.push(ingredient);
         currentSection.steps.push({
@@ -7031,74 +7044,81 @@ function renderRecipe(container, recipe, settings) {
     }
   }
 }
+function field(metadata, key) {
+  const value = metadata[key];
+  return value !== void 0 && value !== "" ? value : void 0;
+}
 function renderMetadata(container, recipe) {
   const { metadata } = recipe;
   if (Object.keys(metadata).length === 0) return;
   const card = container.createDiv({ cls: "cook-metadata-card" });
-  const title = metadata.title;
-  if (title) {
+  const title = field(metadata, "title");
+  if (title !== void 0) {
     card.createEl("h1", { text: title, cls: "cook-title" });
   }
-  const description = metadata.description;
-  if (description) {
+  const description = field(metadata, "description");
+  if (description !== void 0) {
     card.createEl("p", { text: description, cls: "cook-description" });
   }
   const infoRow = card.createDiv({ cls: "cook-info-row" });
-  const servings = metadata.servings;
-  if (servings) {
+  const servings = field(metadata, "servings");
+  if (servings !== void 0) {
     const tag = infoRow.createDiv({ cls: "cook-info-tag" });
     tag.createSpan({ text: "\u{1F37D}", cls: "cook-info-icon" });
     tag.createSpan({ text: servings });
   }
-  const prepTime = metadata["time.prep"];
-  if (prepTime) {
+  const prepTime = field(metadata, "time.prep");
+  if (prepTime !== void 0) {
     const tag = infoRow.createDiv({ cls: "cook-info-tag" });
     tag.createSpan({ text: "\u23F1", cls: "cook-info-icon" });
     tag.createSpan({ text: `Prep: ${prepTime}` });
   }
-  const cookTime = metadata["time.cook"];
-  if (cookTime) {
+  const cookTime = field(metadata, "time.cook");
+  if (cookTime !== void 0) {
     const tag = infoRow.createDiv({ cls: "cook-info-tag" });
     tag.createSpan({ text: "\u{1F525}", cls: "cook-info-icon" });
     tag.createSpan({ text: `Cook: ${cookTime}` });
   }
-  const totalTime = metadata["time.total"];
-  if (totalTime) {
+  const totalTime = field(metadata, "time.total");
+  if (totalTime !== void 0) {
     const tag = infoRow.createDiv({ cls: "cook-info-tag" });
     tag.createSpan({ text: "\u23F0", cls: "cook-info-icon" });
     tag.createSpan({ text: `Total: ${totalTime}` });
   }
-  const sourceUrl = metadata["source.url"];
-  const source = metadata.source;
-  if (sourceUrl) {
+  const sourceUrl = field(metadata, "source.url");
+  const source = field(metadata, "source");
+  if (sourceUrl !== void 0) {
     const link = card.createEl("a", {
-      text: source || sourceUrl,
+      text: source != null ? source : sourceUrl,
       href: sourceUrl,
       cls: "cook-source-link external-link"
     });
     link.setAttr("target", "_blank");
     link.setAttr("rel", "noopener");
-  } else if (source) {
+  } else if (source !== void 0) {
     card.createEl("span", { text: `Source: ${source}`, cls: "cook-source" });
   }
-  const author = metadata["source.author"];
-  if (author) {
+  const author = field(metadata, "source.author");
+  if (author !== void 0) {
     card.createEl("span", { text: `by ${author}`, cls: "cook-author" });
   }
-  const cuisine = metadata.cuisine;
-  const category = metadata.category;
-  if (cuisine || category) {
+  const cuisine = field(metadata, "cuisine");
+  const category = field(metadata, "category");
+  if (cuisine !== void 0 || category !== void 0) {
     const tags = card.createDiv({ cls: "cook-tags" });
-    if (cuisine) tags.createSpan({ text: cuisine, cls: "cook-tag" });
-    if (category) tags.createSpan({ text: category, cls: "cook-tag" });
+    if (cuisine !== void 0)
+      tags.createSpan({ text: cuisine, cls: "cook-tag" });
+    if (category !== void 0)
+      tags.createSpan({ text: category, cls: "cook-tag" });
   }
 }
 function renderImage(container, recipe) {
-  const imageUrl = recipe.metadata["image.url"];
-  if (imageUrl) {
+  var _a;
+  const imageUrl = field(recipe.metadata, "image.url");
+  if (imageUrl !== void 0) {
     const imgWrapper = container.createDiv({ cls: "cook-image-wrapper" });
     imgWrapper.createEl("img", {
-      attr: { src: imageUrl, alt: recipe.metadata.title || "Recipe" },
+      attr: { src: imageUrl, alt: (_a = field(recipe.metadata, "title")) != null ? _a : "Recipe" },
       cls: "cook-image"
     });
   }
@@ -7176,10 +7196,11 @@ function renderDirections(container, section, _recipe, settings) {
     const content = stepEl.createDiv({ cls: "cook-step-content" });
     const p = content.createEl("p");
     const tokens = [...step.tokens];
-    if (tokens.length > 0 && tokens[0].type === "text") {
-      const stripped = tokens[0].value.replace(/^\d+\.\s+/, "");
-      if (stripped !== tokens[0].value) {
-        tokens[0] = { ...tokens[0], value: stripped };
+    const first2 = tokens[0];
+    if ((first2 == null ? void 0 : first2.type) === "text") {
+      const stripped = first2.value.replace(/^\d+\.\s+/, "");
+      if (stripped !== first2.value) {
+        tokens[0] = { ...first2, value: stripped };
       }
     }
     renderTokens(p, tokens, settings);
@@ -7228,8 +7249,12 @@ var VIEW_TYPE_COOK = "cook";
 var CookView = class extends import_obsidian.TextFileView {
   constructor(leaf, plugin) {
     super(leaf);
-    this.editor = null;
-    this.toggleBtn = null;
+    __publicField(this, "plugin");
+    __publicField(this, "editor", null);
+    __publicField(this, "editorEl");
+    __publicField(this, "previewEl");
+    __publicField(this, "isPreview");
+    __publicField(this, "toggleBtn", null);
     this.plugin = plugin;
     this.isPreview = plugin.settings.defaultView === "preview";
     this.editorEl = this.contentEl.createDiv({ cls: "cook-editor-container" });
@@ -7352,13 +7377,13 @@ var CookView = class extends import_obsidian.TextFileView {
   }
   getState() {
     const state = super.getState();
-    state.mode = this.isPreview ? "preview" : "source";
+    state["mode"] = this.isPreview ? "preview" : "source";
     return state;
   }
   setState(state, result) {
-    if (state.mode === "source") {
+    if (state["mode"] === "source") {
       this.isPreview = false;
-    } else if (state.mode === "preview") {
+    } else if (state["mode"] === "preview") {
       this.isPreview = true;
     }
     this.updateVisibility();
@@ -7378,6 +7403,7 @@ var DEFAULT_SETTINGS = {
 var CooklangSettingTab = class extends import_obsidian2.PluginSettingTab {
   constructor(app, plugin) {
     super(app, plugin);
+    __publicField(this, "plugin");
     this.plugin = plugin;
   }
   display() {
@@ -7426,7 +7452,7 @@ var CHEF_HAT_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 10
 var CooklangPlugin = class extends import_obsidian3.Plugin {
   constructor() {
     super(...arguments);
-    this.settings = DEFAULT_SETTINGS;
+    __publicField(this, "settings", DEFAULT_SETTINGS);
   }
   async onload() {
     await this.loadSettings();

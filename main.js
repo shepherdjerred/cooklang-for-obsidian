@@ -87,7 +87,7 @@ var cookLanguage = import_language.StreamLanguage.define({
   }
 });
 
-// ../../node_modules/.bun/@chevrotain+utils@12.0.0/node_modules/@chevrotain/utils/lib/src/print.js
+// ../../node_modules/.bun/@chevrotain+utils@13.0.0/node_modules/@chevrotain/utils/lib/src/print.js
 function PRINT_ERROR(msg) {
   if (console && console.error) {
     console.error(`Error: ${msg}`);
@@ -99,7 +99,7 @@ function PRINT_WARNING(msg) {
   }
 }
 
-// ../../node_modules/.bun/@chevrotain+utils@12.0.0/node_modules/@chevrotain/utils/lib/src/timer.js
+// ../../node_modules/.bun/@chevrotain+utils@13.0.0/node_modules/@chevrotain/utils/lib/src/timer.js
 function timer(func) {
   const start = (/* @__PURE__ */ new Date()).getTime();
   const val = func();
@@ -108,7 +108,7 @@ function timer(func) {
   return { time: total, value: val };
 }
 
-// ../../node_modules/.bun/@chevrotain+utils@12.0.0/node_modules/@chevrotain/utils/lib/src/to-fast-properties.js
+// ../../node_modules/.bun/@chevrotain+utils@13.0.0/node_modules/@chevrotain/utils/lib/src/to-fast-properties.js
 function toFastProperties(toBecomeFast) {
   function FakeConstructor() {
   }
@@ -124,7 +124,7 @@ function toFastProperties(toBecomeFast) {
   (0, eval)(toBecomeFast);
 }
 
-// ../../node_modules/.bun/@chevrotain+gast@12.0.0/node_modules/@chevrotain/gast/lib/src/model.js
+// ../../node_modules/.bun/@chevrotain+gast@13.0.0/node_modules/@chevrotain/gast/lib/src/model.js
 function tokenLabel(tokType) {
   if (hasTokenLabel(tokType)) {
     return tokType.LABEL;
@@ -333,7 +333,7 @@ function pickOnlyDefined(obj) {
   return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== void 0));
 }
 
-// ../../node_modules/.bun/@chevrotain+gast@12.0.0/node_modules/@chevrotain/gast/lib/src/visitor.js
+// ../../node_modules/.bun/@chevrotain+gast@13.0.0/node_modules/@chevrotain/gast/lib/src/visitor.js
 var GAstVisitor = class {
   visit(node) {
     const nodeAny = node;
@@ -395,7 +395,7 @@ var GAstVisitor = class {
   }
 };
 
-// ../../node_modules/.bun/@chevrotain+gast@12.0.0/node_modules/@chevrotain/gast/lib/src/helpers.js
+// ../../node_modules/.bun/@chevrotain+gast@13.0.0/node_modules/@chevrotain/gast/lib/src/helpers.js
 function isSequenceProd(prod) {
   return prod instanceof Alternative || prod instanceof Option || prod instanceof Repetition || prod instanceof RepetitionMandatory || prod instanceof RepetitionMandatoryWithSeparator || prod instanceof RepetitionWithSeparator || prod instanceof Terminal || prod instanceof Rule;
 }
@@ -446,7 +446,7 @@ function getProductionDslName(prod) {
   }
 }
 
-// ../../node_modules/.bun/chevrotain@12.0.0/node_modules/chevrotain/lib/src/parse/grammar/rest.js
+// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/grammar/rest.js
 var RestWalker = class {
   walk(prod, prevRest = []) {
     prod.definition.forEach((subProd, index) => {
@@ -526,7 +526,7 @@ function restForRepetitionWithSeparator(repSepProd, currRest, prevRest) {
   return fullRepSepRest;
 }
 
-// ../../node_modules/.bun/chevrotain@12.0.0/node_modules/chevrotain/lib/src/parse/grammar/first.js
+// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/grammar/first.js
 function first(prod) {
   if (prod instanceof NonTerminal) {
     return first(prod.referencedRule);
@@ -566,10 +566,10 @@ function firstForTerminal(terminal) {
   return [terminal.terminalType];
 }
 
-// ../../node_modules/.bun/chevrotain@12.0.0/node_modules/chevrotain/lib/src/parse/constants.js
+// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/constants.js
 var IN = "_~IN~_";
 
-// ../../node_modules/.bun/chevrotain@12.0.0/node_modules/chevrotain/lib/src/parse/grammar/follow.js
+// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/grammar/follow.js
 var ResyncFollowsWalker = class extends RestWalker {
   constructor(topProd) {
     super();
@@ -602,7 +602,7 @@ function buildBetweenProdsFollowPrefix(inner, occurenceInParent) {
   return inner.name + occurenceInParent + IN;
 }
 
-// ../../node_modules/.bun/@chevrotain+regexp-to-ast@12.0.0/node_modules/@chevrotain/regexp-to-ast/lib/src/utils.js
+// ../../node_modules/.bun/@chevrotain+regexp-to-ast@13.0.0/node_modules/@chevrotain/regexp-to-ast/lib/src/utils.js
 function cc(char) {
   return char.charCodeAt(0);
 }
@@ -635,7 +635,7 @@ function isCharacter(obj) {
   return obj["type"] === "Character";
 }
 
-// ../../node_modules/.bun/@chevrotain+regexp-to-ast@12.0.0/node_modules/@chevrotain/regexp-to-ast/lib/src/character-classes.js
+// ../../node_modules/.bun/@chevrotain+regexp-to-ast@13.0.0/node_modules/@chevrotain/regexp-to-ast/lib/src/character-classes.js
 var digitsCharCodes = [];
 for (let i = cc("0"); i <= cc("9"); i++) {
   digitsCharCodes.push(i);
@@ -676,7 +676,7 @@ var whitespaceCodes = [
   cc("\uFEFF")
 ];
 
-// ../../node_modules/.bun/@chevrotain+regexp-to-ast@12.0.0/node_modules/@chevrotain/regexp-to-ast/lib/src/regexp-parser.js
+// ../../node_modules/.bun/@chevrotain+regexp-to-ast@13.0.0/node_modules/@chevrotain/regexp-to-ast/lib/src/regexp-parser.js
 var hexDigitPattern = /[0-9a-fA-F]/;
 var decimalPattern = /[0-9]/;
 var decimalPatternNoZero = /[1-9]/;
@@ -1379,7 +1379,7 @@ var RegExpParser = class {
   }
 };
 
-// ../../node_modules/.bun/@chevrotain+regexp-to-ast@12.0.0/node_modules/@chevrotain/regexp-to-ast/lib/src/base-regexp-visitor.js
+// ../../node_modules/.bun/@chevrotain+regexp-to-ast@13.0.0/node_modules/@chevrotain/regexp-to-ast/lib/src/base-regexp-visitor.js
 var BaseRegExpVisitor = class {
   visitChildren(node) {
     for (const key in node) {
@@ -1489,7 +1489,7 @@ var BaseRegExpVisitor = class {
   }
 };
 
-// ../../node_modules/.bun/chevrotain@12.0.0/node_modules/chevrotain/lib/src/scan/reg_exp_parser.js
+// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/scan/reg_exp_parser.js
 var regExpAstCache = {};
 var regExpParser = new RegExpParser();
 function getRegExpAst(regExp) {
@@ -1506,7 +1506,7 @@ function clearRegExpParserCache() {
   regExpAstCache = {};
 }
 
-// ../../node_modules/.bun/chevrotain@12.0.0/node_modules/chevrotain/lib/src/scan/reg_exp.js
+// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/scan/reg_exp.js
 var complementErrorMessage = "Complement Sets are not supported for first char optimization";
 var failedOptimizationPrefixMsg = 'Unable to use "first char" lexer optimizations:\n';
 function getOptimizedStartCodesIndices(regExp, ensureOptimizations = false) {
@@ -1722,7 +1722,7 @@ function canMatchCharCode(charCodes, pattern) {
   }
 }
 
-// ../../node_modules/.bun/chevrotain@12.0.0/node_modules/chevrotain/lib/src/scan/lexer.js
+// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/scan/lexer.js
 var PATTERN = "PATTERN";
 var DEFAULT_MODE = "defaultMode";
 var MODES = "modes";
@@ -2280,19 +2280,6 @@ function performWarningRuntimeChecks(lexerDefinition, trackLines, lineTerminator
   }
   return warnings;
 }
-function cloneEmptyGroups(emptyGroups) {
-  const clonedResult = {};
-  const groupKeys = Object.keys(emptyGroups);
-  groupKeys.forEach((currKey) => {
-    const currGroupValue = emptyGroups[currKey];
-    if (Array.isArray(currGroupValue)) {
-      clonedResult[currKey] = [];
-    } else {
-      throw Error("non exhaustive match");
-    }
-  });
-  return clonedResult;
-}
 function isCustomPattern(tokenType) {
   const pattern = tokenType.PATTERN;
   if (pattern instanceof RegExp) {
@@ -2404,7 +2391,7 @@ function initCharCodeToOptimizedIndexMap() {
   }
 }
 
-// ../../node_modules/.bun/chevrotain@12.0.0/node_modules/chevrotain/lib/src/scan/tokens.js
+// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/scan/tokens.js
 function tokenStructuredMatcher(tokInstance, tokConstructor) {
   const instanceType = tokInstance.tokenTypeIdx;
   if (instanceType === tokConstructor.tokenTypeIdx) {
@@ -2503,7 +2490,7 @@ function isTokenType(tokType) {
   return Object.hasOwn(tokType !== null && tokType !== void 0 ? tokType : {}, "tokenTypeIdx");
 }
 
-// ../../node_modules/.bun/chevrotain@12.0.0/node_modules/chevrotain/lib/src/scan/lexer_errors_public.js
+// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/scan/lexer_errors_public.js
 var defaultLexerErrorProvider = {
   buildUnableToPopLexerModeMessage(token) {
     return `Unable to pop Lexer Mode after encountering Token ->${token.image}<- The Mode Stack is empty`;
@@ -2513,7 +2500,7 @@ var defaultLexerErrorProvider = {
   }
 };
 
-// ../../node_modules/.bun/chevrotain@12.0.0/node_modules/chevrotain/lib/src/scan/lexer_public.js
+// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/scan/lexer_public.js
 var LexerDefinitionErrorType;
 (function(LexerDefinitionErrorType2) {
   LexerDefinitionErrorType2[LexerDefinitionErrorType2["MISSING_PATTERN"] = 0] = "MISSING_PATTERN";
@@ -2557,6 +2544,7 @@ var Lexer = class {
     this.charCodeToPatternIdxToConfig = {};
     this.modes = [];
     this.emptyGroups = {};
+    this.cachedGroupKeys = [];
     this.trackStartLines = true;
     this.trackEndLines = true;
     this.hasCustom = false;
@@ -2660,6 +2648,7 @@ var Lexer = class {
         });
       });
       this.defaultMode = actualDefinition.defaultMode;
+      this.cachedGroupKeys = Object.keys(this.emptyGroups);
       if (this.lexerDefinitionErrors.length > 0 && !this.config.deferDefinitionErrorsHandling) {
         const allErrMessages = this.lexerDefinitionErrors.map((error) => {
           return error.message;
@@ -2745,7 +2734,10 @@ var Lexer = class {
     const errors = [];
     let line = this.trackStartLines ? 1 : void 0;
     let column = this.trackStartLines ? 1 : void 0;
-    const groups = cloneEmptyGroups(this.emptyGroups);
+    const groups = {};
+    for (let gi = 0; gi < this.cachedGroupKeys.length; gi++) {
+      groups[this.cachedGroupKeys[gi]] = [];
+    }
     const trackLines = this.trackStartLines;
     const lineTerminatorPattern = this.config.lineTerminatorsPattern;
     let currModePatternsLength = 0;
@@ -2785,7 +2777,6 @@ var Lexer = class {
       modeStack.push(newMode);
       currCharCodeToPatternIdxToConfig = this.charCodeToPatternIdxToConfig[newMode];
       patternIdxToConfig = this.patternIdxToConfig[newMode];
-      currModePatternsLength = patternIdxToConfig.length;
       currModePatternsLength = patternIdxToConfig.length;
       const modeCanBeOptimized = this.canModeBeOptimized[newMode] && this.config.safeMode === false;
       if (currCharCodeToPatternIdxToConfig && modeCanBeOptimized) {
@@ -3049,7 +3040,7 @@ var Lexer = class {
 Lexer.SKIPPED = "This marks a skipped Token pattern, this means each token identified by it will be consumed and then thrown into oblivion, this can be used to for example to completely ignore whitespace.";
 Lexer.NA = /NOT_APPLICABLE/;
 
-// ../../node_modules/.bun/chevrotain@12.0.0/node_modules/chevrotain/lib/src/scan/tokens_public.js
+// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/scan/tokens_public.js
 function tokenLabel2(tokType) {
   if (hasTokenLabel2(tokType)) {
     return tokType.LABEL;
@@ -3128,7 +3119,7 @@ function tokenMatcher(token, tokType) {
   return tokenStructuredMatcher(token, tokType);
 }
 
-// ../../node_modules/.bun/chevrotain@12.0.0/node_modules/chevrotain/lib/src/parse/errors_public.js
+// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/errors_public.js
 var defaultParserErrorProvider = {
   buildMismatchTokenMessage({ expected, actual, previous, ruleName }) {
     const hasLabel = hasTokenLabel2(expected);
@@ -3290,7 +3281,7 @@ see: https://en.wikipedia.org/wiki/LL_parser#Left_factoring.`;
   }
 };
 
-// ../../node_modules/.bun/chevrotain@12.0.0/node_modules/chevrotain/lib/src/parse/grammar/resolver.js
+// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/grammar/resolver.js
 function resolveGrammar(topLevels, errMsgProvider) {
   const refResolver = new GastRefResolverVisitor(topLevels, errMsgProvider);
   refResolver.resolveRefs();
@@ -3325,7 +3316,7 @@ var GastRefResolverVisitor = class extends GAstVisitor {
   }
 };
 
-// ../../node_modules/.bun/chevrotain@12.0.0/node_modules/chevrotain/lib/src/parse/grammar/interpreter.js
+// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/grammar/interpreter.js
 var AbstractNextPossibleTokensWalker = class extends RestWalker {
   constructor(topProd, path) {
     super();
@@ -3736,7 +3727,7 @@ function expandTopLevelRule(topRule, currIdx, currRuleStack, currOccurrenceStack
   };
 }
 
-// ../../node_modules/.bun/chevrotain@12.0.0/node_modules/chevrotain/lib/src/parse/grammar/lookahead.js
+// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/grammar/lookahead.js
 var PROD_TYPE;
 (function(PROD_TYPE2) {
   PROD_TYPE2[PROD_TYPE2["OPTION"] = 0] = "OPTION";
@@ -4095,7 +4086,7 @@ function areTokenCategoriesNotUsed(lookAheadPaths) {
   return lookAheadPaths.every((singleAltPaths) => singleAltPaths.every((singlePath) => singlePath.every((token) => token.categoryMatches.length === 0)));
 }
 
-// ../../node_modules/.bun/chevrotain@12.0.0/node_modules/chevrotain/lib/src/parse/grammar/checks.js
+// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/grammar/checks.js
 function validateLookahead(options) {
   const lookaheadValidationErrorMessages = options.lookaheadStrategy.validate({
     rules: options.rules,
@@ -4488,7 +4479,7 @@ function checkTerminalAndNoneTerminalsNameSpace(topLevels, tokenTypes, errMsgPro
   return errors;
 }
 
-// ../../node_modules/.bun/chevrotain@12.0.0/node_modules/chevrotain/lib/src/parse/grammar/gast/gast_resolver_public.js
+// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/grammar/gast/gast_resolver_public.js
 function resolveGrammar2(options) {
   const actualOptions = Object.assign({ errMsgProvider: defaultGrammarResolverErrorProvider }, options);
   const topRulesTable = {};
@@ -4503,7 +4494,7 @@ function validateGrammar2(options) {
   return validateGrammar(options.rules, options.tokenTypes, errMsgProvider, options.grammarName);
 }
 
-// ../../node_modules/.bun/chevrotain@12.0.0/node_modules/chevrotain/lib/src/parse/exceptions_public.js
+// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/exceptions_public.js
 var MISMATCHED_TOKEN_EXCEPTION = "MismatchedTokenException";
 var NO_VIABLE_ALT_EXCEPTION = "NoViableAltException";
 var EARLY_EXIT_EXCEPTION = "EarlyExitException";
@@ -4557,7 +4548,7 @@ var EarlyExitException = class extends RecognitionException {
   }
 };
 
-// ../../node_modules/.bun/chevrotain@12.0.0/node_modules/chevrotain/lib/src/parse/parser/traits/recoverable.js
+// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/parser/traits/recoverable.js
 var EOF_FOLLOW_KEY = {};
 var IN_RULE_RECOVERY_EXCEPTION = "InRuleRecoveryException";
 var InRuleRecoveryException = class extends Error {
@@ -4576,7 +4567,7 @@ var Recoverable = class {
     }
   }
   getTokenToInsert(tokType) {
-    const tokToInsert = createTokenInstance(tokType, "", NaN, NaN, NaN, NaN, NaN, NaN);
+    const tokToInsert = createTokenInstance(tokType, "", -1, -1, -1, -1, -1, -1);
     tokToInsert.isInsertedInRecovery = true;
     return tokToInsert;
   }
@@ -4821,7 +4812,7 @@ function attemptInRepetitionRecovery(prodFunc, args, lookaheadFunc, dslMethodIdx
   }
 }
 
-// ../../node_modules/.bun/chevrotain@12.0.0/node_modules/chevrotain/lib/src/parse/grammar/keys.js
+// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/grammar/keys.js
 var BITS_FOR_METHOD_TYPE = 4;
 var BITS_FOR_OCCURRENCE_IDX = 8;
 var BITS_FOR_ALT_IDX = 8;
@@ -4836,7 +4827,7 @@ function getKeyForAutomaticLookahead(ruleIdx, dslMethodIdx, occurrence) {
 }
 var BITS_START_FOR_ALT_IDX = 32 - BITS_FOR_ALT_IDX;
 
-// ../../node_modules/.bun/chevrotain@12.0.0/node_modules/chevrotain/lib/src/parse/grammar/llk_lookahead.js
+// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/grammar/llk_lookahead.js
 var LLkLookaheadStrategy = class {
   constructor(options) {
     var _a;
@@ -4878,7 +4869,7 @@ var LLkLookaheadStrategy = class {
   }
 };
 
-// ../../node_modules/.bun/chevrotain@12.0.0/node_modules/chevrotain/lib/src/parse/parser/traits/looksahead.js
+// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/parser/traits/looksahead.js
 var LooksAhead = class {
   initLooksAhead(config) {
     this.dynamicTokensEnabled = Object.hasOwn(config, "dynamicTokensEnabled") ? config.dynamicTokensEnabled : DEFAULT_PARSER_CONFIG.dynamicTokensEnabled;
@@ -4997,9 +4988,9 @@ function collectMethods(rule) {
   return dslMethods;
 }
 
-// ../../node_modules/.bun/chevrotain@12.0.0/node_modules/chevrotain/lib/src/parse/cst/cst.js
+// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/cst/cst.js
 function setNodeLocationOnlyOffset(currNodeLocation, newLocationInfo) {
-  if (isNaN(currNodeLocation.startOffset) === true) {
+  if (currNodeLocation.startOffset === -1) {
     currNodeLocation.startOffset = newLocationInfo.startOffset;
     currNodeLocation.endOffset = newLocationInfo.endOffset;
   } else if (currNodeLocation.endOffset < newLocationInfo.endOffset === true) {
@@ -5007,7 +4998,7 @@ function setNodeLocationOnlyOffset(currNodeLocation, newLocationInfo) {
   }
 }
 function setNodeLocationFull(currNodeLocation, newLocationInfo) {
-  if (isNaN(currNodeLocation.startOffset) === true) {
+  if (currNodeLocation.startOffset === -1) {
     currNodeLocation.startOffset = newLocationInfo.startOffset;
     currNodeLocation.startColumn = newLocationInfo.startColumn;
     currNodeLocation.startLine = newLocationInfo.startLine;
@@ -5035,7 +5026,7 @@ function addNoneTerminalToCst(node, ruleName, ruleResult) {
   }
 }
 
-// ../../node_modules/.bun/chevrotain@12.0.0/node_modules/chevrotain/lib/src/lang/lang_extensions.js
+// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/lang/lang_extensions.js
 var NAME = "name";
 function defineNameProp(obj, nameValue) {
   Object.defineProperty(obj, NAME, {
@@ -5046,7 +5037,7 @@ function defineNameProp(obj, nameValue) {
   });
 }
 
-// ../../node_modules/.bun/chevrotain@12.0.0/node_modules/chevrotain/lib/src/parse/cst/cst_visitor.js
+// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/cst/cst_visitor.js
 function defaultVisit(ctx, param) {
   const childrenNames = Object.keys(ctx);
   const childrenNamesLength = childrenNames.length;
@@ -5125,7 +5116,7 @@ function validateMissingCstMethods(visitorInstance, ruleNames) {
   return errors.filter(Boolean);
 }
 
-// ../../node_modules/.bun/chevrotain@12.0.0/node_modules/chevrotain/lib/src/parse/parser/traits/tree_builder.js
+// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/parser/traits/tree_builder.js
 var TreeBuilder = class {
   initTreeBuilder(config) {
     this.CST_STACK = [];
@@ -5189,8 +5180,8 @@ var TreeBuilder = class {
   }
   setInitialNodeLocationOnlyOffsetRecovery(cstNode) {
     cstNode.location = {
-      startOffset: NaN,
-      endOffset: NaN
+      startOffset: -1,
+      endOffset: -1
     };
   }
   setInitialNodeLocationOnlyOffsetRegular(cstNode) {
@@ -5200,17 +5191,17 @@ var TreeBuilder = class {
       // For invalid inputs there won't be any CSTOutput so this potential
       // inaccuracy does not matter
       startOffset: this.LA_FAST(1).startOffset,
-      endOffset: NaN
+      endOffset: -1
     };
   }
   setInitialNodeLocationFullRecovery(cstNode) {
     cstNode.location = {
-      startOffset: NaN,
-      startLine: NaN,
-      startColumn: NaN,
-      endOffset: NaN,
-      endLine: NaN,
-      endColumn: NaN
+      startOffset: -1,
+      startLine: -1,
+      startColumn: -1,
+      endOffset: -1,
+      endLine: -1,
+      endColumn: -1
     };
   }
   /**
@@ -5224,9 +5215,9 @@ var TreeBuilder = class {
       startOffset: nextToken.startOffset,
       startLine: nextToken.startLine,
       startColumn: nextToken.startColumn,
-      endOffset: NaN,
-      endLine: NaN,
-      endColumn: NaN
+      endOffset: -1,
+      endLine: -1,
+      endColumn: -1
     };
   }
   cstInvocationStateUpdate(fullRuleName) {
@@ -5243,23 +5234,23 @@ var TreeBuilder = class {
   cstPostRuleFull(ruleCstNode) {
     const prevToken = this.LA(0);
     const loc = ruleCstNode.location;
-    if (loc.startOffset <= prevToken.startOffset === true) {
+    if (loc.startOffset !== -1 && loc.startOffset <= prevToken.startOffset === true) {
       loc.endOffset = prevToken.endOffset;
       loc.endLine = prevToken.endLine;
       loc.endColumn = prevToken.endColumn;
     } else {
-      loc.startOffset = NaN;
-      loc.startLine = NaN;
-      loc.startColumn = NaN;
+      loc.startOffset = -1;
+      loc.startLine = -1;
+      loc.startColumn = -1;
     }
   }
   cstPostRuleOnlyOffset(ruleCstNode) {
     const prevToken = this.LA(0);
     const loc = ruleCstNode.location;
-    if (loc.startOffset <= prevToken.startOffset === true) {
+    if (loc.startOffset !== -1 && loc.startOffset <= prevToken.startOffset === true) {
       loc.endOffset = prevToken.endOffset;
     } else {
-      loc.startOffset = NaN;
+      loc.startOffset = -1;
     }
   }
   cstPostTerminal(key, consumedToken) {
@@ -5271,6 +5262,10 @@ var TreeBuilder = class {
     const preCstNode = this.CST_STACK[this.CST_STACK.length - 1];
     addNoneTerminalToCst(preCstNode, ruleName, ruleCstResult);
     this.setNodeLocationFromNode(preCstNode.location, ruleCstResult.location);
+  }
+  get currCSTNode() {
+    const mixedIn = this;
+    return mixedIn.CST_STACK[mixedIn.CST_STACK.length - 1];
   }
   getBaseCstVisitorConstructor() {
     if (this.baseCstVisitorConstructor === void 0) {
@@ -5296,7 +5291,7 @@ var TreeBuilder = class {
   }
 };
 
-// ../../node_modules/.bun/chevrotain@12.0.0/node_modules/chevrotain/lib/src/parse/parser/traits/lexer_adapter.js
+// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/parser/traits/lexer_adapter.js
 var LexerAdapter = class {
   initLexerAdapter() {
     this.tokVector = [];
@@ -5360,7 +5355,7 @@ var LexerAdapter = class {
   }
 };
 
-// ../../node_modules/.bun/chevrotain@12.0.0/node_modules/chevrotain/lib/src/parse/parser/traits/recognizer_api.js
+// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/parser/traits/recognizer_api.js
 var RecognizerApi = class {
   ACTION(impl) {
     return impl.call(this);
@@ -5678,7 +5673,7 @@ var RecognizerApi = class {
   }
 };
 
-// ../../node_modules/.bun/chevrotain@12.0.0/node_modules/chevrotain/lib/src/parse/parser/traits/recognizer_engine.js
+// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/parser/traits/recognizer_engine.js
 var RecognizerEngine = class {
   initRecognizerEngine(tokenVocabulary, config) {
     this.className = this.constructor.name;
@@ -6164,7 +6159,7 @@ Make sure that all grammar rule definitions are done before 'performSelfAnalysis
   }
 };
 
-// ../../node_modules/.bun/chevrotain@12.0.0/node_modules/chevrotain/lib/src/parse/parser/traits/error_handler.js
+// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/parser/traits/error_handler.js
 var ErrorHandler = class {
   initErrorHandler(config) {
     this._errors = [];
@@ -6228,7 +6223,7 @@ var ErrorHandler = class {
   }
 };
 
-// ../../node_modules/.bun/chevrotain@12.0.0/node_modules/chevrotain/lib/src/parse/parser/traits/gast_recorder.js
+// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/parser/traits/gast_recorder.js
 var RECORDING_NULL_OBJECT = {
   description: "This Object indicates the Parser is during Recording Phase"
 };
@@ -6240,8 +6235,8 @@ augmentTokenTypes([RFT]);
 var RECORDING_PHASE_TOKEN = createTokenInstance(
   RFT,
   "This IToken indicates the Parser is in Recording Phase\n	See: https://chevrotain.io/docs/guide/internals.html#grammar-recording for details",
-  // Using "-1" instead of NaN (as in EOF) because an actual number is less likely to
-  // cause errors if the output of LA or CONSUME would be (incorrectly) used during the recording phase.
+  // Negative positions are less likely to cause errors if the output of LA or CONSUME
+  // is incorrectly used during the recording phase.
   -1,
   -1,
   -1,
@@ -6490,7 +6485,7 @@ function assertMethodIdxIsValid(idx) {
   }
 }
 
-// ../../node_modules/.bun/chevrotain@12.0.0/node_modules/chevrotain/lib/src/parse/parser/traits/perf_tracer.js
+// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/parser/traits/perf_tracer.js
 var PerformanceTracer = class {
   initPerformanceTracer(config) {
     if (Object.hasOwn(config, "traceInitPerf")) {
@@ -6524,7 +6519,7 @@ var PerformanceTracer = class {
   }
 };
 
-// ../../node_modules/.bun/chevrotain@12.0.0/node_modules/chevrotain/lib/src/parse/parser/utils/apply_mixins.js
+// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/parser/utils/apply_mixins.js
 function applyMixins(derivedCtor, baseCtors) {
   baseCtors.forEach((baseCtor) => {
     const baseProto = baseCtor.prototype;
@@ -6542,8 +6537,8 @@ function applyMixins(derivedCtor, baseCtors) {
   });
 }
 
-// ../../node_modules/.bun/chevrotain@12.0.0/node_modules/chevrotain/lib/src/parse/parser/parser.js
-var END_OF_FILE = createTokenInstance(EOF, "", NaN, NaN, NaN, NaN, NaN, NaN);
+// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/parser/parser.js
+var END_OF_FILE = createTokenInstance(EOF, "", -1, -1, -1, -1, -1, -1);
 Object.freeze(END_OF_FILE);
 var DEFAULT_PARSER_CONFIG = Object.freeze({
   recoveryEnabled: false,

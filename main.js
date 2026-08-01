@@ -7474,7 +7474,7 @@ var CooklangPlugin = class extends import_obsidian3.Plugin {
   }
   async loadSettings() {
     const data = await this.loadData();
-    if (data != null && typeof data === "object") {
+    if (typeof data === "object" && data != null) {
       this.settings = { ...DEFAULT_SETTINGS, ...data };
     }
   }

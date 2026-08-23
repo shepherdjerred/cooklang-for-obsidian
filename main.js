@@ -87,7 +87,7 @@ var cookLanguage = import_language.StreamLanguage.define({
   }
 });
 
-// ../../node_modules/.bun/@chevrotain+utils@13.0.0/node_modules/@chevrotain/utils/lib/src/print.js
+// ../../node_modules/.bun/@chevrotain+utils@13.2.0/node_modules/@chevrotain/utils/lib/src/print.js
 function PRINT_ERROR(msg) {
   if (console && console.error) {
     console.error(`Error: ${msg}`);
@@ -99,7 +99,7 @@ function PRINT_WARNING(msg) {
   }
 }
 
-// ../../node_modules/.bun/@chevrotain+utils@13.0.0/node_modules/@chevrotain/utils/lib/src/timer.js
+// ../../node_modules/.bun/@chevrotain+utils@13.2.0/node_modules/@chevrotain/utils/lib/src/timer.js
 function timer(func) {
   const start = (/* @__PURE__ */ new Date()).getTime();
   const val = func();
@@ -108,7 +108,7 @@ function timer(func) {
   return { time: total, value: val };
 }
 
-// ../../node_modules/.bun/@chevrotain+utils@13.0.0/node_modules/@chevrotain/utils/lib/src/to-fast-properties.js
+// ../../node_modules/.bun/@chevrotain+utils@13.2.0/node_modules/@chevrotain/utils/lib/src/to-fast-properties.js
 function toFastProperties(toBecomeFast) {
   function FakeConstructor() {
   }
@@ -124,7 +124,7 @@ function toFastProperties(toBecomeFast) {
   (0, eval)(toBecomeFast);
 }
 
-// ../../node_modules/.bun/@chevrotain+gast@13.0.0/node_modules/@chevrotain/gast/lib/src/model.js
+// ../../node_modules/.bun/@chevrotain+gast@13.2.0/node_modules/@chevrotain/gast/lib/src/model.js
 function tokenLabel(tokType) {
   if (hasTokenLabel(tokType)) {
     return tokType.LABEL;
@@ -333,7 +333,7 @@ function pickOnlyDefined(obj) {
   return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== void 0));
 }
 
-// ../../node_modules/.bun/@chevrotain+gast@13.0.0/node_modules/@chevrotain/gast/lib/src/visitor.js
+// ../../node_modules/.bun/@chevrotain+gast@13.2.0/node_modules/@chevrotain/gast/lib/src/visitor.js
 var GAstVisitor = class {
   visit(node) {
     const nodeAny = node;
@@ -395,7 +395,7 @@ var GAstVisitor = class {
   }
 };
 
-// ../../node_modules/.bun/@chevrotain+gast@13.0.0/node_modules/@chevrotain/gast/lib/src/helpers.js
+// ../../node_modules/.bun/@chevrotain+gast@13.2.0/node_modules/@chevrotain/gast/lib/src/helpers.js
 function isSequenceProd(prod) {
   return prod instanceof Alternative || prod instanceof Option || prod instanceof Repetition || prod instanceof RepetitionMandatory || prod instanceof RepetitionMandatoryWithSeparator || prod instanceof RepetitionWithSeparator || prod instanceof Terminal || prod instanceof Rule;
 }
@@ -446,7 +446,7 @@ function getProductionDslName(prod) {
   }
 }
 
-// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/grammar/rest.js
+// ../../node_modules/.bun/chevrotain@13.2.0/node_modules/chevrotain/lib/src/parse/grammar/rest.js
 var RestWalker = class {
   walk(prod, prevRest = []) {
     prod.definition.forEach((subProd, index) => {
@@ -526,7 +526,7 @@ function restForRepetitionWithSeparator(repSepProd, currRest, prevRest) {
   return fullRepSepRest;
 }
 
-// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/grammar/first.js
+// ../../node_modules/.bun/chevrotain@13.2.0/node_modules/chevrotain/lib/src/parse/grammar/first.js
 function first(prod) {
   if (prod instanceof NonTerminal) {
     return first(prod.referencedRule);
@@ -566,10 +566,10 @@ function firstForTerminal(terminal) {
   return [terminal.terminalType];
 }
 
-// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/constants.js
+// ../../node_modules/.bun/chevrotain@13.2.0/node_modules/chevrotain/lib/src/parse/constants.js
 var IN = "_~IN~_";
 
-// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/grammar/follow.js
+// ../../node_modules/.bun/chevrotain@13.2.0/node_modules/chevrotain/lib/src/parse/grammar/follow.js
 var ResyncFollowsWalker = class extends RestWalker {
   constructor(topProd) {
     super();
@@ -602,7 +602,7 @@ function buildBetweenProdsFollowPrefix(inner, occurenceInParent) {
   return inner.name + occurenceInParent + IN;
 }
 
-// ../../node_modules/.bun/@chevrotain+regexp-to-ast@13.0.0/node_modules/@chevrotain/regexp-to-ast/lib/src/utils.js
+// ../../node_modules/.bun/@chevrotain+regexp-to-ast@13.2.0/node_modules/@chevrotain/regexp-to-ast/lib/src/utils.js
 function cc(char) {
   return char.charCodeAt(0);
 }
@@ -635,7 +635,7 @@ function isCharacter(obj) {
   return obj["type"] === "Character";
 }
 
-// ../../node_modules/.bun/@chevrotain+regexp-to-ast@13.0.0/node_modules/@chevrotain/regexp-to-ast/lib/src/character-classes.js
+// ../../node_modules/.bun/@chevrotain+regexp-to-ast@13.2.0/node_modules/@chevrotain/regexp-to-ast/lib/src/character-classes.js
 var digitsCharCodes = [];
 for (let i = cc("0"); i <= cc("9"); i++) {
   digitsCharCodes.push(i);
@@ -676,7 +676,7 @@ var whitespaceCodes = [
   cc("\uFEFF")
 ];
 
-// ../../node_modules/.bun/@chevrotain+regexp-to-ast@13.0.0/node_modules/@chevrotain/regexp-to-ast/lib/src/regexp-parser.js
+// ../../node_modules/.bun/@chevrotain+regexp-to-ast@13.2.0/node_modules/@chevrotain/regexp-to-ast/lib/src/regexp-parser.js
 var hexDigitPattern = /[0-9a-fA-F]/;
 var decimalPattern = /[0-9]/;
 var decimalPatternNoZero = /[1-9]/;
@@ -1379,7 +1379,7 @@ var RegExpParser = class {
   }
 };
 
-// ../../node_modules/.bun/@chevrotain+regexp-to-ast@13.0.0/node_modules/@chevrotain/regexp-to-ast/lib/src/base-regexp-visitor.js
+// ../../node_modules/.bun/@chevrotain+regexp-to-ast@13.2.0/node_modules/@chevrotain/regexp-to-ast/lib/src/base-regexp-visitor.js
 var BaseRegExpVisitor = class {
   visitChildren(node) {
     for (const key in node) {
@@ -1489,7 +1489,7 @@ var BaseRegExpVisitor = class {
   }
 };
 
-// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/scan/reg_exp_parser.js
+// ../../node_modules/.bun/chevrotain@13.2.0/node_modules/chevrotain/lib/src/scan/reg_exp_parser.js
 var regExpAstCache = {};
 var regExpParser = new RegExpParser();
 function getRegExpAst(regExp) {
@@ -1506,7 +1506,7 @@ function clearRegExpParserCache() {
   regExpAstCache = {};
 }
 
-// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/scan/reg_exp.js
+// ../../node_modules/.bun/chevrotain@13.2.0/node_modules/chevrotain/lib/src/scan/reg_exp.js
 var complementErrorMessage = "Complement Sets are not supported for first char optimization";
 var failedOptimizationPrefixMsg = 'Unable to use "first char" lexer optimizations:\n';
 function getOptimizedStartCodesIndices(regExp, ensureOptimizations = false) {
@@ -1722,10 +1722,14 @@ function canMatchCharCode(charCodes, pattern) {
   }
 }
 
-// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/scan/lexer.js
+// ../../node_modules/.bun/chevrotain@13.2.0/node_modules/chevrotain/lib/src/scan/lexer.js
 var PATTERN = "PATTERN";
 var DEFAULT_MODE = "defaultMode";
 var MODES = "modes";
+var SINGLE_CHAR_MATCH = 0;
+var CUSTOM_MATCH = 1;
+var REG_EXP_MATCH = 2;
+var ASCII_CLASS_MATCH = 3;
 function analyzeTokenTypes(tokenTypes, options) {
   options = Object.assign({ safeMode: false, positionTracking: "full", lineTerminatorCharacters: ["\r", "\n"], tracer: (msg, action) => action() }, options);
   const tracer = options.tracer;
@@ -1849,11 +1853,13 @@ function analyzeTokenTypes(tokenTypes, options) {
       return acc;
     }, {});
     patternIdxToConfig = allTransformedPatterns.map((x, idx) => {
+      const asciiClass = patternIdxToGroup[idx] === void 0 && patternIdxToLongerAltIdxArr[idx] === void 0 ? getAsciiClass(onlyRelevantTypes[idx].PATTERN) : void 0;
       return {
         pattern: allTransformedPatterns[idx],
+        asciiClass,
         longerAlt: patternIdxToLongerAltIdxArr[idx],
         canLineTerminator: patternIdxToCanLineTerminator[idx],
-        isCustom: patternIdxToIsCustom[idx],
+        matchType: asciiClass !== void 0 ? ASCII_CLASS_MATCH : patternIdxToShort[idx] !== false ? SINGLE_CHAR_MATCH : patternIdxToIsCustom[idx] ? CUSTOM_MATCH : REG_EXP_MATCH,
         short: patternIdxToShort[idx],
         group: patternIdxToGroup[idx],
         push: patternIdxToPushMode[idx],
@@ -1919,6 +1925,47 @@ function analyzeTokenTypes(tokenTypes, options) {
     hasCustom,
     canBeOptimized
   };
+}
+function getAsciiClass(pattern) {
+  var _a, _b;
+  if (!(pattern instanceof RegExp) || pattern.flags !== "") {
+    return void 0;
+  }
+  let ast;
+  try {
+    ast = getRegExpAst(pattern);
+  } catch (_c) {
+    return void 0;
+  }
+  if (ast.value.value.length !== 1 || ast.value.value[0].value.length !== 1) {
+    return void 0;
+  }
+  let atom = ast.value.value[0].value[0];
+  let quantifier;
+  while (atom.type === "Group") {
+    if (atom.capturing || atom.quantifier !== void 0 && quantifier !== void 0 || atom.value.value.length !== 1 || atom.value.value[0].value.length !== 1) {
+      return void 0;
+    }
+    quantifier = (_a = atom.quantifier) !== null && _a !== void 0 ? _a : quantifier;
+    atom = atom.value.value[0].value[0];
+  }
+  if (atom.type !== "Set" || atom.complement || atom.quantifier !== void 0 && quantifier !== void 0) {
+    return void 0;
+  }
+  quantifier = (_b = atom.quantifier) !== null && _b !== void 0 ? _b : quantifier;
+  if ((quantifier === null || quantifier === void 0 ? void 0 : quantifier.atLeast) !== 1 || quantifier.atMost !== Infinity || !quantifier.greedy) {
+    return void 0;
+  }
+  const result = new Uint8Array(128);
+  for (const item of atom.value) {
+    const from = typeof item === "number" ? item : item.from;
+    const to = typeof item === "number" ? item : item.to;
+    if (from < 0 || to >= result.length) {
+      return void 0;
+    }
+    result.fill(1, from, to + 1);
+  }
+  return result;
 }
 function validatePatterns(tokenTypes, validModesNames) {
   let errors = [];
@@ -2391,7 +2438,7 @@ function initCharCodeToOptimizedIndexMap() {
   }
 }
 
-// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/scan/tokens.js
+// ../../node_modules/.bun/chevrotain@13.2.0/node_modules/chevrotain/lib/src/scan/tokens.js
 function tokenStructuredMatcher(tokInstance, tokConstructor) {
   const instanceType = tokInstance.tokenTypeIdx;
   if (instanceType === tokConstructor.tokenTypeIdx) {
@@ -2490,7 +2537,7 @@ function isTokenType(tokType) {
   return Object.hasOwn(tokType !== null && tokType !== void 0 ? tokType : {}, "tokenTypeIdx");
 }
 
-// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/scan/lexer_errors_public.js
+// ../../node_modules/.bun/chevrotain@13.2.0/node_modules/chevrotain/lib/src/scan/lexer_errors_public.js
 var defaultLexerErrorProvider = {
   buildUnableToPopLexerModeMessage(token) {
     return `Unable to pop Lexer Mode after encountering Token ->${token.image}<- The Mode Stack is empty`;
@@ -2500,7 +2547,7 @@ var defaultLexerErrorProvider = {
   }
 };
 
-// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/scan/lexer_public.js
+// ../../node_modules/.bun/chevrotain@13.2.0/node_modules/chevrotain/lib/src/scan/lexer_public.js
 var LexerDefinitionErrorType;
 (function(LexerDefinitionErrorType2) {
   LexerDefinitionErrorType2[LexerDefinitionErrorType2["MISSING_PATTERN"] = 0] = "MISSING_PATTERN";
@@ -2805,26 +2852,43 @@ var Lexer = class {
         currConfig = chosenPatternIdxToConfig[i];
         const currPattern = currConfig.pattern;
         payload = null;
-        const singleCharCode = currConfig.short;
-        if (singleCharCode !== false) {
-          if (nextCharCode === singleCharCode) {
-            imageLength = 1;
-            matchedImage = currPattern;
-          }
-        } else if (currConfig.isCustom === true) {
-          match = currPattern.exec(orgText, offset, matchedTokens, groups);
-          if (match !== null) {
-            matchedImage = match[0];
-            imageLength = matchedImage.length;
-            if (match.payload !== void 0) {
-              payload = match.payload;
+        switch (currConfig.matchType) {
+          case SINGLE_CHAR_MATCH:
+            if (nextCharCode === currConfig.short) {
+              imageLength = 1;
+              matchedImage = currPattern;
             }
-          } else {
-            matchedImage = null;
+            break;
+          case CUSTOM_MATCH:
+            match = currPattern.exec(orgText, offset, matchedTokens, groups);
+            if (match !== null) {
+              matchedImage = match[0];
+              imageLength = matchedImage.length;
+              if (match.payload !== void 0) {
+                payload = match.payload;
+              }
+            } else {
+              matchedImage = null;
+            }
+            break;
+          case ASCII_CLASS_MATCH: {
+            const asciiClass = currConfig.asciiClass;
+            if (asciiClass[nextCharCode] !== 1) {
+              currPattern.lastIndex = 0;
+              break;
+            }
+            let endOffset = offset + 1;
+            while (asciiClass[orgText.charCodeAt(endOffset)] === 1) {
+              endOffset++;
+            }
+            imageLength = endOffset - offset;
+            currPattern.lastIndex = endOffset;
+            break;
           }
-        } else {
-          currPattern.lastIndex = offset;
-          imageLength = this.matchLength(currPattern, text, offset);
+          case REG_EXP_MATCH:
+            currPattern.lastIndex = offset;
+            imageLength = this.matchLength(currPattern, text, offset);
+            break;
         }
         if (imageLength !== -1) {
           longerAlt = currConfig.longerAlt;
@@ -2835,7 +2899,7 @@ var Lexer = class {
               const longerAltConfig = patternIdxToConfig[longerAlt[k]];
               const longerAltPattern = longerAltConfig.pattern;
               altPayload = null;
-              if (longerAltConfig.isCustom === true) {
+              if (longerAltConfig.matchType === CUSTOM_MATCH) {
                 match = longerAltPattern.exec(orgText, offset, matchedTokens, groups);
                 if (match !== null) {
                   matchAltImage = match[0];
@@ -2909,16 +2973,20 @@ var Lexer = class {
           for (j = 0; j < currModePatternsLength; j++) {
             const currConfig2 = patternIdxToConfig[j];
             const currPattern = currConfig2.pattern;
-            const singleCharCode = currConfig2.short;
-            if (singleCharCode !== false) {
-              if (orgText.charCodeAt(offset) === singleCharCode) {
-                foundResyncPoint = true;
-              }
-            } else if (currConfig2.isCustom === true) {
-              foundResyncPoint = currPattern.exec(orgText, offset, matchedTokens, groups) !== null;
-            } else {
-              currPattern.lastIndex = offset;
-              foundResyncPoint = currPattern.exec(text) !== null;
+            switch (currConfig2.matchType) {
+              case SINGLE_CHAR_MATCH:
+                if (orgText.charCodeAt(offset) === currConfig2.short) {
+                  foundResyncPoint = true;
+                }
+                break;
+              case CUSTOM_MATCH:
+                foundResyncPoint = currPattern.exec(orgText, offset, matchedTokens, groups) !== null;
+                break;
+              case ASCII_CLASS_MATCH:
+              case REG_EXP_MATCH:
+                currPattern.lastIndex = offset;
+                foundResyncPoint = currPattern.exec(text) !== null;
+                break;
             }
             if (foundResyncPoint === true) {
               break;
@@ -3040,7 +3108,7 @@ var Lexer = class {
 Lexer.SKIPPED = "This marks a skipped Token pattern, this means each token identified by it will be consumed and then thrown into oblivion, this can be used to for example to completely ignore whitespace.";
 Lexer.NA = /NOT_APPLICABLE/;
 
-// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/scan/tokens_public.js
+// ../../node_modules/.bun/chevrotain@13.2.0/node_modules/chevrotain/lib/src/scan/tokens_public.js
 function tokenLabel2(tokType) {
   if (hasTokenLabel2(tokType)) {
     return tokType.LABEL;
@@ -3119,7 +3187,7 @@ function tokenMatcher(token, tokType) {
   return tokenStructuredMatcher(token, tokType);
 }
 
-// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/errors_public.js
+// ../../node_modules/.bun/chevrotain@13.2.0/node_modules/chevrotain/lib/src/parse/errors_public.js
 var defaultParserErrorProvider = {
   buildMismatchTokenMessage({ expected, actual, previous, ruleName }) {
     const hasLabel = hasTokenLabel2(expected);
@@ -3281,7 +3349,7 @@ see: https://en.wikipedia.org/wiki/LL_parser#Left_factoring.`;
   }
 };
 
-// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/grammar/resolver.js
+// ../../node_modules/.bun/chevrotain@13.2.0/node_modules/chevrotain/lib/src/parse/grammar/resolver.js
 function resolveGrammar(topLevels, errMsgProvider) {
   const refResolver = new GastRefResolverVisitor(topLevels, errMsgProvider);
   refResolver.resolveRefs();
@@ -3316,7 +3384,7 @@ var GastRefResolverVisitor = class extends GAstVisitor {
   }
 };
 
-// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/grammar/interpreter.js
+// ../../node_modules/.bun/chevrotain@13.2.0/node_modules/chevrotain/lib/src/parse/grammar/interpreter.js
 var AbstractNextPossibleTokensWalker = class extends RestWalker {
   constructor(topProd, path) {
     super();
@@ -3727,7 +3795,7 @@ function expandTopLevelRule(topRule, currIdx, currRuleStack, currOccurrenceStack
   };
 }
 
-// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/grammar/lookahead.js
+// ../../node_modules/.bun/chevrotain@13.2.0/node_modules/chevrotain/lib/src/parse/grammar/lookahead.js
 var PROD_TYPE;
 (function(PROD_TYPE2) {
   PROD_TYPE2[PROD_TYPE2["OPTION"] = 0] = "OPTION";
@@ -4086,7 +4154,7 @@ function areTokenCategoriesNotUsed(lookAheadPaths) {
   return lookAheadPaths.every((singleAltPaths) => singleAltPaths.every((singlePath) => singlePath.every((token) => token.categoryMatches.length === 0)));
 }
 
-// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/grammar/checks.js
+// ../../node_modules/.bun/chevrotain@13.2.0/node_modules/chevrotain/lib/src/parse/grammar/checks.js
 function validateLookahead(options) {
   const lookaheadValidationErrorMessages = options.lookaheadStrategy.validate({
     rules: options.rules,
@@ -4479,7 +4547,7 @@ function checkTerminalAndNoneTerminalsNameSpace(topLevels, tokenTypes, errMsgPro
   return errors;
 }
 
-// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/grammar/gast/gast_resolver_public.js
+// ../../node_modules/.bun/chevrotain@13.2.0/node_modules/chevrotain/lib/src/parse/grammar/gast/gast_resolver_public.js
 function resolveGrammar2(options) {
   const actualOptions = Object.assign({ errMsgProvider: defaultGrammarResolverErrorProvider }, options);
   const topRulesTable = {};
@@ -4494,7 +4562,7 @@ function validateGrammar2(options) {
   return validateGrammar(options.rules, options.tokenTypes, errMsgProvider, options.grammarName);
 }
 
-// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/exceptions_public.js
+// ../../node_modules/.bun/chevrotain@13.2.0/node_modules/chevrotain/lib/src/parse/exceptions_public.js
 var MISMATCHED_TOKEN_EXCEPTION = "MismatchedTokenException";
 var NO_VIABLE_ALT_EXCEPTION = "NoViableAltException";
 var EARLY_EXIT_EXCEPTION = "EarlyExitException";
@@ -4548,7 +4616,7 @@ var EarlyExitException = class extends RecognitionException {
   }
 };
 
-// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/parser/traits/recoverable.js
+// ../../node_modules/.bun/chevrotain@13.2.0/node_modules/chevrotain/lib/src/parse/parser/traits/recoverable.js
 var EOF_FOLLOW_KEY = {};
 var IN_RULE_RECOVERY_EXCEPTION = "InRuleRecoveryException";
 var InRuleRecoveryException = class extends Error {
@@ -4559,7 +4627,7 @@ var InRuleRecoveryException = class extends Error {
 };
 var Recoverable = class {
   initRecoverable(config) {
-    this.firstAfterRepMap = {};
+    this.firstAfterRepMap = [];
     this.resyncFollows = {};
     this.recoveryEnabled = Object.hasOwn(config, "recoveryEnabled") ? config.recoveryEnabled : DEFAULT_PARSER_CONFIG.recoveryEnabled;
     if (this.recoveryEnabled) {
@@ -4788,14 +4856,17 @@ var Recoverable = class {
   }
 };
 function attemptInRepetitionRecovery(prodFunc, args, lookaheadFunc, dslMethodIdx, prodOccurrence, nextToksWalker, notStuck) {
-  const key = this.getKeyForAutomaticLookahead(dslMethodIdx, prodOccurrence);
-  let firstAfterRepInfo = this.firstAfterRepMap[key];
+  var _a;
+  var _b, _c;
+  const key = dslMethodIdx | prodOccurrence;
+  const ruleCache = (_a = (_b = this.firstAfterRepMap)[_c = this.currRuleShortName]) !== null && _a !== void 0 ? _a : _b[_c] = [];
+  let firstAfterRepInfo = ruleCache[key];
   if (firstAfterRepInfo === void 0) {
     const currRuleName = this.getCurrRuleFullName();
     const ruleGrammar = this.getGAstProductions()[currRuleName];
     const walker = new nextToksWalker(ruleGrammar, prodOccurrence);
     firstAfterRepInfo = walker.startWalking();
-    this.firstAfterRepMap[key] = firstAfterRepInfo;
+    ruleCache[key] = firstAfterRepInfo;
   }
   let expectTokAfterLastMatch = firstAfterRepInfo.token;
   let nextTokIdx = firstAfterRepInfo.occurrence;
@@ -4812,22 +4883,16 @@ function attemptInRepetitionRecovery(prodFunc, args, lookaheadFunc, dslMethodIdx
   }
 }
 
-// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/grammar/keys.js
-var BITS_FOR_METHOD_TYPE = 4;
+// ../../node_modules/.bun/chevrotain@13.2.0/node_modules/chevrotain/lib/src/parse/grammar/keys.js
 var BITS_FOR_OCCURRENCE_IDX = 8;
-var BITS_FOR_ALT_IDX = 8;
 var OR_IDX = 1 << BITS_FOR_OCCURRENCE_IDX;
 var OPTION_IDX = 2 << BITS_FOR_OCCURRENCE_IDX;
 var MANY_IDX = 3 << BITS_FOR_OCCURRENCE_IDX;
 var AT_LEAST_ONE_IDX = 4 << BITS_FOR_OCCURRENCE_IDX;
 var MANY_SEP_IDX = 5 << BITS_FOR_OCCURRENCE_IDX;
 var AT_LEAST_ONE_SEP_IDX = 6 << BITS_FOR_OCCURRENCE_IDX;
-function getKeyForAutomaticLookahead(ruleIdx, dslMethodIdx, occurrence) {
-  return occurrence | dslMethodIdx | ruleIdx;
-}
-var BITS_START_FOR_ALT_IDX = 32 - BITS_FOR_ALT_IDX;
 
-// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/grammar/llk_lookahead.js
+// ../../node_modules/.bun/chevrotain@13.2.0/node_modules/chevrotain/lib/src/parse/grammar/llk_lookahead.js
 var LLkLookaheadStrategy = class {
   constructor(options) {
     var _a;
@@ -4869,13 +4934,14 @@ var LLkLookaheadStrategy = class {
   }
 };
 
-// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/parser/traits/looksahead.js
+// ../../node_modules/.bun/chevrotain@13.2.0/node_modules/chevrotain/lib/src/parse/parser/traits/looksahead.js
 var LooksAhead = class {
   initLooksAhead(config) {
     this.dynamicTokensEnabled = Object.hasOwn(config, "dynamicTokensEnabled") ? config.dynamicTokensEnabled : DEFAULT_PARSER_CONFIG.dynamicTokensEnabled;
     this.maxLookahead = Object.hasOwn(config, "maxLookahead") ? config.maxLookahead : DEFAULT_PARSER_CONFIG.maxLookahead;
     this.lookaheadStrategy = Object.hasOwn(config, "lookaheadStrategy") ? config.lookaheadStrategy : new LLkLookaheadStrategy({ maxLookahead: this.maxLookahead });
-    this.lookAheadFuncsCache = /* @__PURE__ */ new Map();
+    this.lookAheadFuncsCache = [];
+    this.currRuleLookaheadFuncs = [];
   }
   preComputeLookaheadFunctions(rules) {
     rules.forEach((currRule) => {
@@ -4891,8 +4957,7 @@ var LooksAhead = class {
               hasPredicates: currProd.hasPredicates,
               dynamicTokensEnabled: this.dynamicTokensEnabled
             });
-            const key = getKeyForAutomaticLookahead(this.fullRuleNameToShort[currRule.name], OR_IDX, currProd.idx);
-            this.setLaFuncCache(key, laFunc);
+            this.setLaFuncCache(this.fullRuleNameToShort[currRule.name], OR_IDX | currProd.idx, laFunc);
           });
         });
         repetition.forEach((currProd) => {
@@ -4922,20 +4987,16 @@ var LooksAhead = class {
         dynamicTokensEnabled: this.dynamicTokensEnabled,
         prodType
       });
-      const key = getKeyForAutomaticLookahead(this.fullRuleNameToShort[rule.name], prodKey, prodOccurrence);
-      this.setLaFuncCache(key, laFunc);
+      this.setLaFuncCache(this.fullRuleNameToShort[rule.name], prodKey | prodOccurrence, laFunc);
     });
   }
-  // this actually returns a number, but it is always used as a string (object prop key)
-  getKeyForAutomaticLookahead(dslMethodIdx, occurrence) {
-    return getKeyForAutomaticLookahead(this.currRuleShortName, dslMethodIdx, occurrence);
-  }
-  getLaFuncFromCache(key) {
-    return this.lookAheadFuncsCache.get(key);
-  }
-  /* istanbul ignore next */
-  setLaFuncCache(key, value) {
-    this.lookAheadFuncsCache.set(key, value);
+  setLaFuncCache(ruleIdx, key, value) {
+    let ruleLookaheadFuncs = this.lookAheadFuncsCache[ruleIdx];
+    if (ruleLookaheadFuncs === void 0) {
+      ruleLookaheadFuncs = [];
+      this.lookAheadFuncsCache[ruleIdx] = ruleLookaheadFuncs;
+    }
+    ruleLookaheadFuncs[key] = value;
   }
 };
 var DslMethodsCollectorVisitor = class extends GAstVisitor {
@@ -4988,7 +5049,7 @@ function collectMethods(rule) {
   return dslMethods;
 }
 
-// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/cst/cst.js
+// ../../node_modules/.bun/chevrotain@13.2.0/node_modules/chevrotain/lib/src/parse/cst/cst.js
 function setNodeLocationOnlyOffset(currNodeLocation, newLocationInfo) {
   if (currNodeLocation.startOffset === -1) {
     currNodeLocation.startOffset = newLocationInfo.startOffset;
@@ -5026,7 +5087,7 @@ function addNoneTerminalToCst(node, ruleName, ruleResult) {
   }
 }
 
-// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/lang/lang_extensions.js
+// ../../node_modules/.bun/chevrotain@13.2.0/node_modules/chevrotain/lib/src/lang/lang_extensions.js
 var NAME = "name";
 function defineNameProp(obj, nameValue) {
   Object.defineProperty(obj, NAME, {
@@ -5037,7 +5098,7 @@ function defineNameProp(obj, nameValue) {
   });
 }
 
-// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/cst/cst_visitor.js
+// ../../node_modules/.bun/chevrotain@13.2.0/node_modules/chevrotain/lib/src/parse/cst/cst_visitor.js
 function defaultVisit(ctx, param) {
   const childrenNames = Object.keys(ctx);
   const childrenNamesLength = childrenNames.length;
@@ -5116,7 +5177,7 @@ function validateMissingCstMethods(visitorInstance, ruleNames) {
   return errors.filter(Boolean);
 }
 
-// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/parser/traits/tree_builder.js
+// ../../node_modules/.bun/chevrotain@13.2.0/node_modules/chevrotain/lib/src/parse/parser/traits/tree_builder.js
 var TreeBuilder = class {
   initTreeBuilder(config) {
     this.CST_STACK = [];
@@ -5291,7 +5352,7 @@ var TreeBuilder = class {
   }
 };
 
-// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/parser/traits/lexer_adapter.js
+// ../../node_modules/.bun/chevrotain@13.2.0/node_modules/chevrotain/lib/src/parse/parser/traits/lexer_adapter.js
 var LexerAdapter = class {
   initLexerAdapter() {
     this.tokVector = [];
@@ -5355,7 +5416,7 @@ var LexerAdapter = class {
   }
 };
 
-// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/parser/traits/recognizer_api.js
+// ../../node_modules/.bun/chevrotain@13.2.0/node_modules/chevrotain/lib/src/parse/parser/traits/recognizer_api.js
 var RecognizerApi = class {
   ACTION(impl) {
     return impl.call(this);
@@ -5673,16 +5734,16 @@ var RecognizerApi = class {
   }
 };
 
-// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/parser/traits/recognizer_engine.js
+// ../../node_modules/.bun/chevrotain@13.2.0/node_modules/chevrotain/lib/src/parse/parser/traits/recognizer_engine.js
 var RecognizerEngine = class {
   initRecognizerEngine(tokenVocabulary, config) {
     this.className = this.constructor.name;
-    this.shortRuleNameToFull = {};
+    this.shortRuleNameToFull = [];
     this.fullRuleNameToShort = {};
-    this.ruleShortNameIdx = 256;
+    this.ruleShortNameIdx = 0;
     this.tokenMatcher = tokenStructuredMatcherNoCategories;
     this.subruleIdx = 0;
-    this.currRuleShortName = 0;
+    this.currRuleShortName = -1;
     this.definedRulesNames = [];
     this.tokensMap = {};
     this.isBackTrackingStack = [];
@@ -5738,8 +5799,7 @@ Make sure that all grammar rule definitions are done before 'performSelfAnalysis
     }
     const resyncEnabled = Object.hasOwn(config, "resyncEnabled") ? config.resyncEnabled : DEFAULT_RULE_CONFIG.resyncEnabled;
     const recoveryValueFunc = Object.hasOwn(config, "recoveryValueFunc") ? config.recoveryValueFunc : DEFAULT_RULE_CONFIG.recoveryValueFunc;
-    const shortName = this.ruleShortNameIdx << BITS_FOR_METHOD_TYPE + BITS_FOR_OCCURRENCE_IDX;
-    this.ruleShortNameIdx++;
+    const shortName = this.ruleShortNameIdx++;
     this.shortRuleNameToFull[shortName] = ruleName;
     this.fullRuleNameToShort[ruleName] = shortName;
     let coreRuleFunction;
@@ -5816,11 +5876,11 @@ Make sure that all grammar rule definitions are done before 'performSelfAnalysis
   }
   // Implementation of parsing DSL
   optionInternal(actionORMethodDef, occurrence) {
-    const key = this.getKeyForAutomaticLookahead(OPTION_IDX, occurrence);
+    const key = OPTION_IDX | occurrence;
     return this.optionInternalLogic(actionORMethodDef, occurrence, key);
   }
   optionInternalLogic(actionORMethodDef, occurrence, key) {
-    let lookAheadFunc = this.getLaFuncFromCache(key);
+    let lookAheadFunc = this.currRuleLookaheadFuncs[key];
     let action;
     if (typeof actionORMethodDef !== "function") {
       action = actionORMethodDef.DEF;
@@ -5840,11 +5900,11 @@ Make sure that all grammar rule definitions are done before 'performSelfAnalysis
     return void 0;
   }
   atLeastOneInternal(prodOccurrence, actionORMethodDef) {
-    const laKey = this.getKeyForAutomaticLookahead(AT_LEAST_ONE_IDX, prodOccurrence);
-    return this.atLeastOneInternalLogic(prodOccurrence, actionORMethodDef, laKey);
+    const key = AT_LEAST_ONE_IDX | prodOccurrence;
+    return this.atLeastOneInternalLogic(prodOccurrence, actionORMethodDef, key);
   }
   atLeastOneInternalLogic(prodOccurrence, actionORMethodDef, key) {
-    let lookAheadFunc = this.getLaFuncFromCache(key);
+    let lookAheadFunc = this.currRuleLookaheadFuncs[key];
     let action;
     if (typeof actionORMethodDef !== "function") {
       action = actionORMethodDef.DEF;
@@ -5869,13 +5929,13 @@ Make sure that all grammar rule definitions are done before 'performSelfAnalysis
     this.attemptInRepetitionRecovery(this.atLeastOneInternal, [prodOccurrence, actionORMethodDef], lookAheadFunc, AT_LEAST_ONE_IDX, prodOccurrence, NextTerminalAfterAtLeastOneWalker);
   }
   atLeastOneSepFirstInternal(prodOccurrence, options) {
-    const laKey = this.getKeyForAutomaticLookahead(AT_LEAST_ONE_SEP_IDX, prodOccurrence);
-    this.atLeastOneSepFirstInternalLogic(prodOccurrence, options, laKey);
+    const key = AT_LEAST_ONE_SEP_IDX | prodOccurrence;
+    this.atLeastOneSepFirstInternalLogic(prodOccurrence, options, key);
   }
   atLeastOneSepFirstInternalLogic(prodOccurrence, options, key) {
     const action = options.DEF;
     const separator = options.SEP;
-    const firstIterationLookaheadFunc = this.getLaFuncFromCache(key);
+    const firstIterationLookaheadFunc = this.currRuleLookaheadFuncs[key];
     if (firstIterationLookaheadFunc.call(this) === true) {
       action.call(this);
       const separatorLookAheadFunc = () => {
@@ -5897,11 +5957,11 @@ Make sure that all grammar rule definitions are done before 'performSelfAnalysis
     }
   }
   manyInternal(prodOccurrence, actionORMethodDef) {
-    const laKey = this.getKeyForAutomaticLookahead(MANY_IDX, prodOccurrence);
-    return this.manyInternalLogic(prodOccurrence, actionORMethodDef, laKey);
+    const key = MANY_IDX | prodOccurrence;
+    return this.manyInternalLogic(prodOccurrence, actionORMethodDef, key);
   }
   manyInternalLogic(prodOccurrence, actionORMethodDef, key) {
-    let lookaheadFunction = this.getLaFuncFromCache(key);
+    let lookaheadFunction = this.currRuleLookaheadFuncs[key];
     let action;
     if (typeof actionORMethodDef !== "function") {
       action = actionORMethodDef.DEF;
@@ -5935,13 +5995,13 @@ Make sure that all grammar rule definitions are done before 'performSelfAnalysis
     );
   }
   manySepFirstInternal(prodOccurrence, options) {
-    const laKey = this.getKeyForAutomaticLookahead(MANY_SEP_IDX, prodOccurrence);
-    this.manySepFirstInternalLogic(prodOccurrence, options, laKey);
+    const key = MANY_SEP_IDX | prodOccurrence;
+    this.manySepFirstInternalLogic(prodOccurrence, options, key);
   }
   manySepFirstInternalLogic(prodOccurrence, options, key) {
     const action = options.DEF;
     const separator = options.SEP;
-    const firstIterationLaFunc = this.getLaFuncFromCache(key);
+    const firstIterationLaFunc = this.currRuleLookaheadFuncs[key];
     if (firstIterationLaFunc.call(this) === true) {
       action.call(this);
       const separatorLookAheadFunc = () => {
@@ -5980,9 +6040,9 @@ Make sure that all grammar rule definitions are done before 'performSelfAnalysis
     return afterIteration > beforeIteration;
   }
   orInternal(altsOrOpts, occurrence) {
-    const laKey = this.getKeyForAutomaticLookahead(OR_IDX, occurrence);
+    const key = OR_IDX | occurrence;
     const alts = Array.isArray(altsOrOpts) ? altsOrOpts : altsOrOpts.DEF;
-    const laFunc = this.getLaFuncFromCache(laKey);
+    const laFunc = this.currRuleLookaheadFuncs[key];
     const altIdxToTake = laFunc.call(this, alts);
     if (altIdxToTake !== void 0) {
       const chosenAlternative = alts[altIdxToTake];
@@ -5995,6 +6055,7 @@ Make sure that all grammar rule definitions are done before 'performSelfAnalysis
     this.RULE_OCCURRENCE_STACK_IDX--;
     if (this.RULE_STACK_IDX >= 0) {
       this.currRuleShortName = this.RULE_STACK[this.RULE_STACK_IDX];
+      this.currRuleLookaheadFuncs = this.lookAheadFuncsCache[this.currRuleShortName];
     }
     this.cstFinallyStateUpdate();
   }
@@ -6085,12 +6146,14 @@ Make sure that all grammar rule definitions are done before 'performSelfAnalysis
     this.RULE_STACK_IDX = saved.length - 1;
     if (this.RULE_STACK_IDX >= 0) {
       this.currRuleShortName = this.RULE_STACK[this.RULE_STACK_IDX];
+      this.currRuleLookaheadFuncs = this.lookAheadFuncsCache[this.currRuleShortName];
     }
   }
   ruleInvocationStateUpdate(shortName, fullName, idxInCallingRule) {
     this.RULE_OCCURRENCE_STACK[++this.RULE_OCCURRENCE_STACK_IDX] = idxInCallingRule;
     this.RULE_STACK[++this.RULE_STACK_IDX] = shortName;
     this.currRuleShortName = shortName;
+    this.currRuleLookaheadFuncs = this.lookAheadFuncsCache[shortName];
     this.cstInvocationStateUpdate(fullName);
   }
   isBackTracking() {
@@ -6109,7 +6172,8 @@ Make sure that all grammar rule definitions are done before 'performSelfAnalysis
   reset() {
     this.resetLexerState();
     this.subruleIdx = 0;
-    this.currRuleShortName = 0;
+    this.currRuleShortName = -1;
+    this.currRuleLookaheadFuncs = [];
     this.isBackTrackingStack = [];
     this.errors = [];
     this.RULE_STACK_IDX = -1;
@@ -6159,7 +6223,7 @@ Make sure that all grammar rule definitions are done before 'performSelfAnalysis
   }
 };
 
-// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/parser/traits/error_handler.js
+// ../../node_modules/.bun/chevrotain@13.2.0/node_modules/chevrotain/lib/src/parse/parser/traits/error_handler.js
 var ErrorHandler = class {
   initErrorHandler(config) {
     this._errors = [];
@@ -6223,13 +6287,13 @@ var ErrorHandler = class {
   }
 };
 
-// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/parser/traits/gast_recorder.js
+// ../../node_modules/.bun/chevrotain@13.2.0/node_modules/chevrotain/lib/src/parse/parser/traits/gast_recorder.js
 var RECORDING_NULL_OBJECT = {
   description: "This Object indicates the Parser is during Recording Phase"
 };
 Object.freeze(RECORDING_NULL_OBJECT);
 var HANDLE_SEPARATOR = true;
-var MAX_METHOD_IDX = Math.pow(2, BITS_FOR_OCCURRENCE_IDX) - 1;
+var MAX_METHOD_IDX = 255;
 var RFT = createToken({ name: "RECORDING_PHASE_TOKEN", pattern: Lexer.NA });
 augmentTokenTypes([RFT]);
 var RECORDING_PHASE_TOKEN = createTokenInstance(
@@ -6485,7 +6549,7 @@ function assertMethodIdxIsValid(idx) {
   }
 }
 
-// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/parser/traits/perf_tracer.js
+// ../../node_modules/.bun/chevrotain@13.2.0/node_modules/chevrotain/lib/src/parse/parser/traits/perf_tracer.js
 var PerformanceTracer = class {
   initPerformanceTracer(config) {
     if (Object.hasOwn(config, "traceInitPerf")) {
@@ -6519,7 +6583,7 @@ var PerformanceTracer = class {
   }
 };
 
-// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/parser/utils/apply_mixins.js
+// ../../node_modules/.bun/chevrotain@13.2.0/node_modules/chevrotain/lib/src/parse/parser/utils/apply_mixins.js
 function applyMixins(derivedCtor, baseCtors) {
   baseCtors.forEach((baseCtor) => {
     const baseProto = baseCtor.prototype;
@@ -6537,7 +6601,7 @@ function applyMixins(derivedCtor, baseCtors) {
   });
 }
 
-// ../../node_modules/.bun/chevrotain@13.0.0/node_modules/chevrotain/lib/src/parse/parser/parser.js
+// ../../node_modules/.bun/chevrotain@13.2.0/node_modules/chevrotain/lib/src/parse/parser/parser.js
 var END_OF_FILE = createTokenInstance(EOF, "", -1, -1, -1, -1, -1, -1);
 Object.freeze(END_OF_FILE);
 var DEFAULT_PARSER_CONFIG = Object.freeze({

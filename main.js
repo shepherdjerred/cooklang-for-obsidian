@@ -5,8 +5,8 @@ var __getOwnPropNames = Object.getOwnPropertyNames;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
 var __export = (target, all) => {
-  for (var name in all)
-    __defProp(target, name, { get: all[name], enumerable: true });
+  for (var name2 in all)
+    __defProp(target, name2, { get: all[name2], enumerable: true });
 };
 var __copyProps = (to, from, except, desc) => {
   if (from && typeof from === "object" || typeof from === "function") {
@@ -29,63 +29,3849 @@ var import_obsidian3 = require("obsidian");
 
 // src/cook-view.ts
 var import_obsidian = require("obsidian");
-var import_view = require("@codemirror/view");
-var import_state = require("@codemirror/state");
+var import_view2 = require("@codemirror/view");
+var import_state2 = require("@codemirror/state");
 var import_commands = require("@codemirror/commands");
 
-// src/syntax/cook-language.ts
-var import_language = require("@codemirror/language");
-var cookLanguage = import_language.StreamLanguage.define({
+// ../../node_modules/.bun/@lezer+common@1.5.2/node_modules/@lezer/common/dist/index.js
+var DefaultBufferLength = 1024;
+var nextPropID = 0;
+var Range = class {
+  constructor(from, to) {
+    this.from = from;
+    this.to = to;
+  }
+};
+var NodeProp = class {
+  /**
+  Create a new node prop type.
+  */
+  constructor(config = {}) {
+    this.id = nextPropID++;
+    this.perNode = !!config.perNode;
+    this.deserialize = config.deserialize || (() => {
+      throw new Error("This node type doesn't define a deserialize function");
+    });
+    this.combine = config.combine || null;
+  }
+  /**
+  This is meant to be used with
+  [`NodeSet.extend`](#common.NodeSet.extend) or
+  [`LRParser.configure`](#lr.ParserConfig.props) to compute
+  prop values for each node type in the set. Takes a [match
+  object](#common.NodeType^match) or function that returns undefined
+  if the node type doesn't get this prop, and the prop's value if
+  it does.
+  */
+  add(match) {
+    if (this.perNode)
+      throw new RangeError("Can't add per-node props to node types");
+    if (typeof match != "function")
+      match = NodeType.match(match);
+    return (type) => {
+      let result = match(type);
+      return result === void 0 ? null : [this, result];
+    };
+  }
+};
+NodeProp.closedBy = new NodeProp({ deserialize: (str) => str.split(" ") });
+NodeProp.openedBy = new NodeProp({ deserialize: (str) => str.split(" ") });
+NodeProp.group = new NodeProp({ deserialize: (str) => str.split(" ") });
+NodeProp.isolate = new NodeProp({ deserialize: (value) => {
+  if (value && value != "rtl" && value != "ltr" && value != "auto")
+    throw new RangeError("Invalid value for isolate: " + value);
+  return value || "auto";
+} });
+NodeProp.contextHash = new NodeProp({ perNode: true });
+NodeProp.lookAhead = new NodeProp({ perNode: true });
+NodeProp.mounted = new NodeProp({ perNode: true });
+var MountedTree = class {
+  constructor(tree, overlay, parser, bracketed = false) {
+    this.tree = tree;
+    this.overlay = overlay;
+    this.parser = parser;
+    this.bracketed = bracketed;
+  }
+  /**
+  @internal
+  */
+  static get(tree) {
+    return tree && tree.props && tree.props[NodeProp.mounted.id];
+  }
+};
+var noProps = /* @__PURE__ */ Object.create(null);
+var NodeType = class _NodeType {
+  /**
+  @internal
+  */
+  constructor(name2, props, id, flags = 0) {
+    this.name = name2;
+    this.props = props;
+    this.id = id;
+    this.flags = flags;
+  }
+  /**
+  Define a node type.
+  */
+  static define(spec) {
+    let props = spec.props && spec.props.length ? /* @__PURE__ */ Object.create(null) : noProps;
+    let flags = (spec.top ? 1 : 0) | (spec.skipped ? 2 : 0) | (spec.error ? 4 : 0) | (spec.name == null ? 8 : 0);
+    let type = new _NodeType(spec.name || "", props, spec.id, flags);
+    if (spec.props)
+      for (let src of spec.props) {
+        if (!Array.isArray(src))
+          src = src(type);
+        if (src) {
+          if (src[0].perNode)
+            throw new RangeError("Can't store a per-node prop on a node type");
+          props[src[0].id] = src[1];
+        }
+      }
+    return type;
+  }
+  /**
+  Retrieves a node prop for this type. Will return `undefined` if
+  the prop isn't present on this node.
+  */
+  prop(prop) {
+    return this.props[prop.id];
+  }
+  /**
+  True when this is the top node of a grammar.
+  */
+  get isTop() {
+    return (this.flags & 1) > 0;
+  }
+  /**
+  True when this node is produced by a skip rule.
+  */
+  get isSkipped() {
+    return (this.flags & 2) > 0;
+  }
+  /**
+  Indicates whether this is an error node.
+  */
+  get isError() {
+    return (this.flags & 4) > 0;
+  }
+  /**
+  When true, this node type doesn't correspond to a user-declared
+  named node, for example because it is used to cache repetition.
+  */
+  get isAnonymous() {
+    return (this.flags & 8) > 0;
+  }
+  /**
+  Returns true when this node's name or one of its
+  [groups](#common.NodeProp^group) matches the given string.
+  */
+  is(name2) {
+    if (typeof name2 == "string") {
+      if (this.name == name2)
+        return true;
+      let group = this.prop(NodeProp.group);
+      return group ? group.indexOf(name2) > -1 : false;
+    }
+    return this.id == name2;
+  }
+  /**
+  Create a function from node types to arbitrary values by
+  specifying an object whose property names are node or
+  [group](#common.NodeProp^group) names. Often useful with
+  [`NodeProp.add`](#common.NodeProp.add). You can put multiple
+  names, separated by spaces, in a single property name to map
+  multiple node names to a single value.
+  */
+  static match(map) {
+    let direct = /* @__PURE__ */ Object.create(null);
+    for (let prop in map)
+      for (let name2 of prop.split(" "))
+        direct[name2] = map[prop];
+    return (node) => {
+      for (let groups = node.prop(NodeProp.group), i = -1; i < (groups ? groups.length : 0); i++) {
+        let found = direct[i < 0 ? node.name : groups[i]];
+        if (found)
+          return found;
+      }
+    };
+  }
+};
+NodeType.none = new NodeType(
+  "",
+  /* @__PURE__ */ Object.create(null),
+  0,
+  8
+  /* NodeFlag.Anonymous */
+);
+var NodeSet = class _NodeSet {
+  /**
+  Create a set with the given types. The `id` property of each
+  type should correspond to its position within the array.
+  */
+  constructor(types) {
+    this.types = types;
+    for (let i = 0; i < types.length; i++)
+      if (types[i].id != i)
+        throw new RangeError("Node type ids should correspond to array positions when creating a node set");
+  }
+  /**
+  Create a copy of this set with some node properties added. The
+  arguments to this method can be created with
+  [`NodeProp.add`](#common.NodeProp.add).
+  */
+  extend(...props) {
+    let newTypes = [];
+    for (let type of this.types) {
+      let newProps = null;
+      for (let source of props) {
+        let add = source(type);
+        if (add) {
+          if (!newProps)
+            newProps = Object.assign({}, type.props);
+          let value = add[1], prop = add[0];
+          if (prop.combine && prop.id in newProps)
+            value = prop.combine(newProps[prop.id], value);
+          newProps[prop.id] = value;
+        }
+      }
+      newTypes.push(newProps ? new NodeType(type.name, newProps, type.id, type.flags) : type);
+    }
+    return new _NodeSet(newTypes);
+  }
+};
+var CachedNode = /* @__PURE__ */ new WeakMap();
+var CachedInnerNode = /* @__PURE__ */ new WeakMap();
+var IterMode;
+(function(IterMode2) {
+  IterMode2[IterMode2["ExcludeBuffers"] = 1] = "ExcludeBuffers";
+  IterMode2[IterMode2["IncludeAnonymous"] = 2] = "IncludeAnonymous";
+  IterMode2[IterMode2["IgnoreMounts"] = 4] = "IgnoreMounts";
+  IterMode2[IterMode2["IgnoreOverlays"] = 8] = "IgnoreOverlays";
+  IterMode2[IterMode2["EnterBracketed"] = 16] = "EnterBracketed";
+})(IterMode || (IterMode = {}));
+var Tree = class _Tree {
+  /**
+  Construct a new tree. See also [`Tree.build`](#common.Tree^build).
+  */
+  constructor(type, children, positions, length, props) {
+    this.type = type;
+    this.children = children;
+    this.positions = positions;
+    this.length = length;
+    this.props = null;
+    if (props && props.length) {
+      this.props = /* @__PURE__ */ Object.create(null);
+      for (let [prop, value] of props)
+        this.props[typeof prop == "number" ? prop : prop.id] = value;
+    }
+  }
+  /**
+  @internal
+  */
+  toString() {
+    let mounted = MountedTree.get(this);
+    if (mounted && !mounted.overlay)
+      return mounted.tree.toString();
+    let children = "";
+    for (let ch of this.children) {
+      let str = ch.toString();
+      if (str) {
+        if (children)
+          children += ",";
+        children += str;
+      }
+    }
+    return !this.type.name ? children : (/\W/.test(this.type.name) && !this.type.isError ? JSON.stringify(this.type.name) : this.type.name) + (children.length ? "(" + children + ")" : "");
+  }
+  /**
+  Get a [tree cursor](#common.TreeCursor) positioned at the top of
+  the tree. Mode can be used to [control](#common.IterMode) which
+  nodes the cursor visits.
+  */
+  cursor(mode = 0) {
+    return new TreeCursor(this.topNode, mode);
+  }
+  /**
+  Get a [tree cursor](#common.TreeCursor) pointing into this tree
+  at the given position and side (see
+  [`moveTo`](#common.TreeCursor.moveTo).
+  */
+  cursorAt(pos, side = 0, mode = 0) {
+    let scope = CachedNode.get(this) || this.topNode;
+    let cursor = new TreeCursor(scope);
+    cursor.moveTo(pos, side);
+    CachedNode.set(this, cursor._tree);
+    return cursor;
+  }
+  /**
+  Get a [syntax node](#common.SyntaxNode) object for the top of the
+  tree.
+  */
+  get topNode() {
+    return new TreeNode(this, 0, 0, null);
+  }
+  /**
+  Get the [syntax node](#common.SyntaxNode) at the given position.
+  If `side` is -1, this will move into nodes that end at the
+  position. If 1, it'll move into nodes that start at the
+  position. With 0, it'll only enter nodes that cover the position
+  from both sides.
+  
+  Note that this will not enter
+  [overlays](#common.MountedTree.overlay), and you often want
+  [`resolveInner`](#common.Tree.resolveInner) instead.
+  */
+  resolve(pos, side = 0) {
+    let node = resolveNode(CachedNode.get(this) || this.topNode, pos, side, false);
+    CachedNode.set(this, node);
+    return node;
+  }
+  /**
+  Like [`resolve`](#common.Tree.resolve), but will enter
+  [overlaid](#common.MountedTree.overlay) nodes, producing a syntax node
+  pointing into the innermost overlaid tree at the given position
+  (with parent links going through all parent structure, including
+  the host trees).
+  */
+  resolveInner(pos, side = 0) {
+    let node = resolveNode(CachedInnerNode.get(this) || this.topNode, pos, side, true);
+    CachedInnerNode.set(this, node);
+    return node;
+  }
+  /**
+  In some situations, it can be useful to iterate through all
+  nodes around a position, including those in overlays that don't
+  directly cover the position. This method gives you an iterator
+  that will produce all nodes, from small to big, around the given
+  position.
+  */
+  resolveStack(pos, side = 0) {
+    return stackIterator(this, pos, side);
+  }
+  /**
+  Iterate over the tree and its children, calling `enter` for any
+  node that touches the `from`/`to` region (if given) before
+  running over such a node's children, and `leave` (if given) when
+  leaving the node. When `enter` returns `false`, that node will
+  not have its children iterated over (or `leave` called).
+  */
+  iterate(spec) {
+    let { enter, leave, from = 0, to = this.length } = spec;
+    let mode = spec.mode || 0, anon = (mode & IterMode.IncludeAnonymous) > 0;
+    for (let c = this.cursor(mode | IterMode.IncludeAnonymous); ; ) {
+      let entered = false;
+      if (c.from <= to && c.to >= from && (!anon && c.type.isAnonymous || enter(c) !== false)) {
+        if (c.firstChild())
+          continue;
+        entered = true;
+      }
+      for (; ; ) {
+        if (entered && leave && (anon || !c.type.isAnonymous))
+          leave(c);
+        if (c.nextSibling())
+          break;
+        if (!c.parent())
+          return;
+        entered = true;
+      }
+    }
+  }
+  /**
+  Get the value of the given [node prop](#common.NodeProp) for this
+  node. Works with both per-node and per-type props.
+  */
+  prop(prop) {
+    return !prop.perNode ? this.type.prop(prop) : this.props ? this.props[prop.id] : void 0;
+  }
+  /**
+  Returns the node's [per-node props](#common.NodeProp.perNode) in a
+  format that can be passed to the [`Tree`](#common.Tree)
+  constructor.
+  */
+  get propValues() {
+    let result = [];
+    if (this.props)
+      for (let id in this.props)
+        result.push([+id, this.props[id]]);
+    return result;
+  }
+  /**
+  Balance the direct children of this tree, producing a copy of
+  which may have children grouped into subtrees with type
+  [`NodeType.none`](#common.NodeType^none).
+  */
+  balance(config = {}) {
+    return this.children.length <= 8 ? this : balanceRange(NodeType.none, this.children, this.positions, 0, this.children.length, 0, this.length, (children, positions, length) => new _Tree(this.type, children, positions, length, this.propValues), config.makeTree || ((children, positions, length) => new _Tree(NodeType.none, children, positions, length)));
+  }
+  /**
+  Build a tree from a postfix-ordered buffer of node information,
+  or a cursor over such a buffer.
+  */
+  static build(data) {
+    return buildTree(data);
+  }
+};
+Tree.empty = new Tree(NodeType.none, [], [], 0);
+var FlatBufferCursor = class _FlatBufferCursor {
+  constructor(buffer, index) {
+    this.buffer = buffer;
+    this.index = index;
+  }
+  get id() {
+    return this.buffer[this.index - 4];
+  }
+  get start() {
+    return this.buffer[this.index - 3];
+  }
+  get end() {
+    return this.buffer[this.index - 2];
+  }
+  get size() {
+    return this.buffer[this.index - 1];
+  }
+  get pos() {
+    return this.index;
+  }
+  next() {
+    this.index -= 4;
+  }
+  fork() {
+    return new _FlatBufferCursor(this.buffer, this.index);
+  }
+};
+var TreeBuffer = class _TreeBuffer {
+  /**
+  Create a tree buffer.
+  */
+  constructor(buffer, length, set) {
+    this.buffer = buffer;
+    this.length = length;
+    this.set = set;
+  }
+  /**
+  @internal
+  */
+  get type() {
+    return NodeType.none;
+  }
+  /**
+  @internal
+  */
+  toString() {
+    let result = [];
+    for (let index = 0; index < this.buffer.length; ) {
+      result.push(this.childString(index));
+      index = this.buffer[index + 3];
+    }
+    return result.join(",");
+  }
+  /**
+  @internal
+  */
+  childString(index) {
+    let id = this.buffer[index], endIndex = this.buffer[index + 3];
+    let type = this.set.types[id], result = type.name;
+    if (/\W/.test(result) && !type.isError)
+      result = JSON.stringify(result);
+    index += 4;
+    if (endIndex == index)
+      return result;
+    let children = [];
+    while (index < endIndex) {
+      children.push(this.childString(index));
+      index = this.buffer[index + 3];
+    }
+    return result + "(" + children.join(",") + ")";
+  }
+  /**
+  @internal
+  */
+  findChild(startIndex, endIndex, dir, pos, side) {
+    let { buffer } = this, pick = -1;
+    for (let i = startIndex; i != endIndex; i = buffer[i + 3]) {
+      if (checkSide(side, pos, buffer[i + 1], buffer[i + 2])) {
+        pick = i;
+        if (dir > 0)
+          break;
+      }
+    }
+    return pick;
+  }
+  /**
+  @internal
+  */
+  slice(startI, endI, from) {
+    let b = this.buffer;
+    let copy = new Uint16Array(endI - startI), len = 0;
+    for (let i = startI, j = 0; i < endI; ) {
+      copy[j++] = b[i++];
+      copy[j++] = b[i++] - from;
+      let to = copy[j++] = b[i++] - from;
+      copy[j++] = b[i++] - startI;
+      len = Math.max(len, to);
+    }
+    return new _TreeBuffer(copy, len, this.set);
+  }
+};
+function checkSide(side, pos, from, to) {
+  switch (side) {
+    case -2:
+      return from < pos;
+    case -1:
+      return to >= pos && from < pos;
+    case 0:
+      return from < pos && to > pos;
+    case 1:
+      return from <= pos && to > pos;
+    case 2:
+      return to > pos;
+    case 4:
+      return true;
+  }
+}
+function resolveNode(node, pos, side, overlays) {
+  var _a2;
+  while (node.from == node.to || (side < 1 ? node.from >= pos : node.from > pos) || (side > -1 ? node.to <= pos : node.to < pos)) {
+    let parent = !overlays && node instanceof TreeNode && node.index < 0 ? null : node.parent;
+    if (!parent)
+      return node;
+    node = parent;
+  }
+  let mode = overlays ? 0 : IterMode.IgnoreOverlays;
+  if (overlays)
+    for (let scan = node, parent = scan.parent; parent; scan = parent, parent = scan.parent) {
+      if (scan instanceof TreeNode && scan.index < 0 && ((_a2 = parent.enter(pos, side, mode)) === null || _a2 === void 0 ? void 0 : _a2.from) != scan.from)
+        node = parent;
+    }
+  for (; ; ) {
+    let inner = node.enter(pos, side, mode);
+    if (!inner)
+      return node;
+    node = inner;
+  }
+}
+var BaseNode = class {
+  cursor(mode = 0) {
+    return new TreeCursor(this, mode);
+  }
+  getChild(type, before = null, after = null) {
+    let r = getChildren(this, type, before, after);
+    return r.length ? r[0] : null;
+  }
+  getChildren(type, before = null, after = null) {
+    return getChildren(this, type, before, after);
+  }
+  resolve(pos, side = 0) {
+    return resolveNode(this, pos, side, false);
+  }
+  resolveInner(pos, side = 0) {
+    return resolveNode(this, pos, side, true);
+  }
+  matchContext(context) {
+    return matchNodeContext(this.parent, context);
+  }
+  enterUnfinishedNodesBefore(pos) {
+    let scan = this.childBefore(pos), node = this;
+    while (scan) {
+      let last = scan.lastChild;
+      if (!last || last.to != scan.to)
+        break;
+      if (last.type.isError && last.from == last.to) {
+        node = scan;
+        scan = last.prevSibling;
+      } else {
+        scan = last;
+      }
+    }
+    return node;
+  }
+  get node() {
+    return this;
+  }
+  get next() {
+    return this.parent;
+  }
+};
+var TreeNode = class _TreeNode extends BaseNode {
+  constructor(_tree, from, index, _parent) {
+    super();
+    this._tree = _tree;
+    this.from = from;
+    this.index = index;
+    this._parent = _parent;
+  }
+  get type() {
+    return this._tree.type;
+  }
+  get name() {
+    return this._tree.type.name;
+  }
+  get to() {
+    return this.from + this._tree.length;
+  }
+  nextChild(i, dir, pos, side, mode = 0) {
+    for (let parent = this; ; ) {
+      for (let { children, positions } = parent._tree, e = dir > 0 ? children.length : -1; i != e; i += dir) {
+        let next = children[i], start = positions[i] + parent.from, mounted;
+        if (!(mode & IterMode.EnterBracketed && next instanceof Tree && (mounted = MountedTree.get(next)) && !mounted.overlay && mounted.bracketed && pos >= start && pos <= start + next.length) && !checkSide(side, pos, start, start + next.length))
+          continue;
+        if (next instanceof TreeBuffer) {
+          if (mode & IterMode.ExcludeBuffers)
+            continue;
+          let index = next.findChild(0, next.buffer.length, dir, pos - start, side);
+          if (index > -1)
+            return new BufferNode(new BufferContext(parent, next, i, start), null, index);
+        } else if (mode & IterMode.IncludeAnonymous || (!next.type.isAnonymous || hasChild(next))) {
+          let mounted2;
+          if (!(mode & IterMode.IgnoreMounts) && (mounted2 = MountedTree.get(next)) && !mounted2.overlay)
+            return new _TreeNode(mounted2.tree, start, i, parent);
+          let inner = new _TreeNode(next, start, i, parent);
+          return mode & IterMode.IncludeAnonymous || !inner.type.isAnonymous ? inner : inner.nextChild(dir < 0 ? next.children.length - 1 : 0, dir, pos, side, mode);
+        }
+      }
+      if (mode & IterMode.IncludeAnonymous || !parent.type.isAnonymous)
+        return null;
+      if (parent.index >= 0)
+        i = parent.index + dir;
+      else
+        i = dir < 0 ? -1 : parent._parent._tree.children.length;
+      parent = parent._parent;
+      if (!parent)
+        return null;
+    }
+  }
+  get firstChild() {
+    return this.nextChild(
+      0,
+      1,
+      0,
+      4
+      /* Side.DontCare */
+    );
+  }
+  get lastChild() {
+    return this.nextChild(
+      this._tree.children.length - 1,
+      -1,
+      0,
+      4
+      /* Side.DontCare */
+    );
+  }
+  childAfter(pos) {
+    return this.nextChild(
+      0,
+      1,
+      pos,
+      2
+      /* Side.After */
+    );
+  }
+  childBefore(pos) {
+    return this.nextChild(
+      this._tree.children.length - 1,
+      -1,
+      pos,
+      -2
+      /* Side.Before */
+    );
+  }
+  prop(prop) {
+    return this._tree.prop(prop);
+  }
+  enter(pos, side, mode = 0) {
+    let mounted;
+    if (!(mode & IterMode.IgnoreOverlays) && (mounted = MountedTree.get(this._tree)) && mounted.overlay) {
+      let rPos = pos - this.from, enterBracketed = mode & IterMode.EnterBracketed && mounted.bracketed;
+      for (let { from, to } of mounted.overlay) {
+        if ((side > 0 || enterBracketed ? from <= rPos : from < rPos) && (side < 0 || enterBracketed ? to >= rPos : to > rPos))
+          return new _TreeNode(mounted.tree, mounted.overlay[0].from + this.from, -1, this);
+      }
+    }
+    return this.nextChild(0, 1, pos, side, mode);
+  }
+  nextSignificantParent() {
+    let val = this;
+    while (val.type.isAnonymous && val._parent)
+      val = val._parent;
+    return val;
+  }
+  get parent() {
+    return this._parent ? this._parent.nextSignificantParent() : null;
+  }
+  get nextSibling() {
+    return this._parent && this.index >= 0 ? this._parent.nextChild(
+      this.index + 1,
+      1,
+      0,
+      4
+      /* Side.DontCare */
+    ) : null;
+  }
+  get prevSibling() {
+    return this._parent && this.index >= 0 ? this._parent.nextChild(
+      this.index - 1,
+      -1,
+      0,
+      4
+      /* Side.DontCare */
+    ) : null;
+  }
+  get tree() {
+    return this._tree;
+  }
+  toTree() {
+    return this._tree;
+  }
+  /**
+  @internal
+  */
+  toString() {
+    return this._tree.toString();
+  }
+};
+function getChildren(node, type, before, after) {
+  let cur = node.cursor(), result = [];
+  if (!cur.firstChild())
+    return result;
+  if (before != null)
+    for (let found = false; !found; ) {
+      found = cur.type.is(before);
+      if (!cur.nextSibling())
+        return result;
+    }
+  for (; ; ) {
+    if (after != null && cur.type.is(after))
+      return result;
+    if (cur.type.is(type))
+      result.push(cur.node);
+    if (!cur.nextSibling())
+      return after == null ? result : [];
+  }
+}
+function matchNodeContext(node, context, i = context.length - 1) {
+  for (let p = node; i >= 0; p = p.parent) {
+    if (!p)
+      return false;
+    if (!p.type.isAnonymous) {
+      if (context[i] && context[i] != p.name)
+        return false;
+      i--;
+    }
+  }
+  return true;
+}
+var BufferContext = class {
+  constructor(parent, buffer, index, start) {
+    this.parent = parent;
+    this.buffer = buffer;
+    this.index = index;
+    this.start = start;
+  }
+};
+var BufferNode = class _BufferNode extends BaseNode {
+  get name() {
+    return this.type.name;
+  }
+  get from() {
+    return this.context.start + this.context.buffer.buffer[this.index + 1];
+  }
+  get to() {
+    return this.context.start + this.context.buffer.buffer[this.index + 2];
+  }
+  constructor(context, _parent, index) {
+    super();
+    this.context = context;
+    this._parent = _parent;
+    this.index = index;
+    this.type = context.buffer.set.types[context.buffer.buffer[index]];
+  }
+  child(dir, pos, side) {
+    let { buffer } = this.context;
+    let index = buffer.findChild(this.index + 4, buffer.buffer[this.index + 3], dir, pos - this.context.start, side);
+    return index < 0 ? null : new _BufferNode(this.context, this, index);
+  }
+  get firstChild() {
+    return this.child(
+      1,
+      0,
+      4
+      /* Side.DontCare */
+    );
+  }
+  get lastChild() {
+    return this.child(
+      -1,
+      0,
+      4
+      /* Side.DontCare */
+    );
+  }
+  childAfter(pos) {
+    return this.child(
+      1,
+      pos,
+      2
+      /* Side.After */
+    );
+  }
+  childBefore(pos) {
+    return this.child(
+      -1,
+      pos,
+      -2
+      /* Side.Before */
+    );
+  }
+  prop(prop) {
+    return this.type.prop(prop);
+  }
+  enter(pos, side, mode = 0) {
+    if (mode & IterMode.ExcludeBuffers)
+      return null;
+    let { buffer } = this.context;
+    let index = buffer.findChild(this.index + 4, buffer.buffer[this.index + 3], side > 0 ? 1 : -1, pos - this.context.start, side);
+    return index < 0 ? null : new _BufferNode(this.context, this, index);
+  }
+  get parent() {
+    return this._parent || this.context.parent.nextSignificantParent();
+  }
+  externalSibling(dir) {
+    return this._parent ? null : this.context.parent.nextChild(
+      this.context.index + dir,
+      dir,
+      0,
+      4
+      /* Side.DontCare */
+    );
+  }
+  get nextSibling() {
+    let { buffer } = this.context;
+    let after = buffer.buffer[this.index + 3];
+    if (after < (this._parent ? buffer.buffer[this._parent.index + 3] : buffer.buffer.length))
+      return new _BufferNode(this.context, this._parent, after);
+    return this.externalSibling(1);
+  }
+  get prevSibling() {
+    let { buffer } = this.context;
+    let parentStart = this._parent ? this._parent.index + 4 : 0;
+    if (this.index == parentStart)
+      return this.externalSibling(-1);
+    return new _BufferNode(this.context, this._parent, buffer.findChild(
+      parentStart,
+      this.index,
+      -1,
+      0,
+      4
+      /* Side.DontCare */
+    ));
+  }
+  get tree() {
+    return null;
+  }
+  toTree() {
+    let children = [], positions = [];
+    let { buffer } = this.context;
+    let startI = this.index + 4, endI = buffer.buffer[this.index + 3];
+    if (endI > startI) {
+      let from = buffer.buffer[this.index + 1];
+      children.push(buffer.slice(startI, endI, from));
+      positions.push(0);
+    }
+    return new Tree(this.type, children, positions, this.to - this.from);
+  }
+  /**
+  @internal
+  */
+  toString() {
+    return this.context.buffer.childString(this.index);
+  }
+};
+function iterStack(heads) {
+  if (!heads.length)
+    return null;
+  let pick = 0, picked = heads[0];
+  for (let i = 1; i < heads.length; i++) {
+    let node = heads[i];
+    if (node.from > picked.from || node.to < picked.to) {
+      picked = node;
+      pick = i;
+    }
+  }
+  let next = picked instanceof TreeNode && picked.index < 0 ? null : picked.parent;
+  let newHeads = heads.slice();
+  if (next)
+    newHeads[pick] = next;
+  else
+    newHeads.splice(pick, 1);
+  return new StackIterator(newHeads, picked);
+}
+var StackIterator = class {
+  constructor(heads, node) {
+    this.heads = heads;
+    this.node = node;
+  }
+  get next() {
+    return iterStack(this.heads);
+  }
+};
+function stackIterator(tree, pos, side) {
+  let inner = tree.resolveInner(pos, side), layers = null;
+  for (let scan = inner instanceof TreeNode ? inner : inner.context.parent; scan; scan = scan.parent) {
+    if (scan.index < 0) {
+      let parent = scan.parent;
+      (layers || (layers = [inner])).push(parent.resolve(pos, side));
+      scan = parent;
+    } else {
+      let mount = MountedTree.get(scan.tree);
+      if (mount && mount.overlay && mount.overlay[0].from <= pos && mount.overlay[mount.overlay.length - 1].to >= pos) {
+        let root = new TreeNode(mount.tree, mount.overlay[0].from + scan.from, -1, scan);
+        (layers || (layers = [inner])).push(resolveNode(root, pos, side, false));
+      }
+    }
+  }
+  return layers ? iterStack(layers) : inner;
+}
+var TreeCursor = class {
+  /**
+  Shorthand for `.type.name`.
+  */
+  get name() {
+    return this.type.name;
+  }
+  /**
+  @internal
+  */
+  constructor(node, mode = 0) {
+    this.buffer = null;
+    this.stack = [];
+    this.index = 0;
+    this.bufferNode = null;
+    this.mode = mode & ~IterMode.EnterBracketed;
+    if (node instanceof TreeNode) {
+      this.yieldNode(node);
+    } else {
+      this._tree = node.context.parent;
+      this.buffer = node.context;
+      for (let n = node._parent; n; n = n._parent)
+        this.stack.unshift(n.index);
+      this.bufferNode = node;
+      this.yieldBuf(node.index);
+    }
+  }
+  yieldNode(node) {
+    if (!node)
+      return false;
+    this._tree = node;
+    this.type = node.type;
+    this.from = node.from;
+    this.to = node.to;
+    return true;
+  }
+  yieldBuf(index, type) {
+    this.index = index;
+    let { start, buffer } = this.buffer;
+    this.type = type || buffer.set.types[buffer.buffer[index]];
+    this.from = start + buffer.buffer[index + 1];
+    this.to = start + buffer.buffer[index + 2];
+    return true;
+  }
+  /**
+  @internal
+  */
+  yield(node) {
+    if (!node)
+      return false;
+    if (node instanceof TreeNode) {
+      this.buffer = null;
+      return this.yieldNode(node);
+    }
+    this.buffer = node.context;
+    return this.yieldBuf(node.index, node.type);
+  }
+  /**
+  @internal
+  */
+  toString() {
+    return this.buffer ? this.buffer.buffer.childString(this.index) : this._tree.toString();
+  }
+  /**
+  @internal
+  */
+  enterChild(dir, pos, side) {
+    if (!this.buffer)
+      return this.yield(this._tree.nextChild(dir < 0 ? this._tree._tree.children.length - 1 : 0, dir, pos, side, this.mode));
+    let { buffer } = this.buffer;
+    let index = buffer.findChild(this.index + 4, buffer.buffer[this.index + 3], dir, pos - this.buffer.start, side);
+    if (index < 0)
+      return false;
+    this.stack.push(this.index);
+    return this.yieldBuf(index);
+  }
+  /**
+  Move the cursor to this node's first child. When this returns
+  false, the node has no child, and the cursor has not been moved.
+  */
+  firstChild() {
+    return this.enterChild(
+      1,
+      0,
+      4
+      /* Side.DontCare */
+    );
+  }
+  /**
+  Move the cursor to this node's last child.
+  */
+  lastChild() {
+    return this.enterChild(
+      -1,
+      0,
+      4
+      /* Side.DontCare */
+    );
+  }
+  /**
+  Move the cursor to the first child that ends after `pos`.
+  */
+  childAfter(pos) {
+    return this.enterChild(
+      1,
+      pos,
+      2
+      /* Side.After */
+    );
+  }
+  /**
+  Move to the last child that starts before `pos`.
+  */
+  childBefore(pos) {
+    return this.enterChild(
+      -1,
+      pos,
+      -2
+      /* Side.Before */
+    );
+  }
+  /**
+  Move the cursor to the child around `pos`. If side is -1 the
+  child may end at that position, when 1 it may start there. This
+  will also enter [overlaid](#common.MountedTree.overlay)
+  [mounted](#common.NodeProp^mounted) trees unless `overlays` is
+  set to false.
+  */
+  enter(pos, side, mode = this.mode) {
+    if (!this.buffer)
+      return this.yield(this._tree.enter(pos, side, mode));
+    return mode & IterMode.ExcludeBuffers ? false : this.enterChild(1, pos, side);
+  }
+  /**
+  Move to the node's parent node, if this isn't the top node.
+  */
+  parent() {
+    if (!this.buffer)
+      return this.yieldNode(this.mode & IterMode.IncludeAnonymous ? this._tree._parent : this._tree.parent);
+    if (this.stack.length)
+      return this.yieldBuf(this.stack.pop());
+    let parent = this.mode & IterMode.IncludeAnonymous ? this.buffer.parent : this.buffer.parent.nextSignificantParent();
+    this.buffer = null;
+    return this.yieldNode(parent);
+  }
+  /**
+  @internal
+  */
+  sibling(dir) {
+    if (!this.buffer)
+      return !this._tree._parent ? false : this.yield(this._tree.index < 0 ? null : this._tree._parent.nextChild(this._tree.index + dir, dir, 0, 4, this.mode));
+    let { buffer } = this.buffer, d = this.stack.length - 1;
+    if (dir < 0) {
+      let parentStart = d < 0 ? 0 : this.stack[d] + 4;
+      if (this.index != parentStart)
+        return this.yieldBuf(buffer.findChild(
+          parentStart,
+          this.index,
+          -1,
+          0,
+          4
+          /* Side.DontCare */
+        ));
+    } else {
+      let after = buffer.buffer[this.index + 3];
+      if (after < (d < 0 ? buffer.buffer.length : buffer.buffer[this.stack[d] + 3]))
+        return this.yieldBuf(after);
+    }
+    return d < 0 ? this.yield(this.buffer.parent.nextChild(this.buffer.index + dir, dir, 0, 4, this.mode)) : false;
+  }
+  /**
+  Move to this node's next sibling, if any.
+  */
+  nextSibling() {
+    return this.sibling(1);
+  }
+  /**
+  Move to this node's previous sibling, if any.
+  */
+  prevSibling() {
+    return this.sibling(-1);
+  }
+  atLastNode(dir) {
+    let index, parent, { buffer } = this;
+    if (buffer) {
+      if (dir > 0) {
+        if (this.index < buffer.buffer.buffer.length)
+          return false;
+      } else {
+        for (let i = 0; i < this.index; i++)
+          if (buffer.buffer.buffer[i + 3] < this.index)
+            return false;
+      }
+      ({ index, parent } = buffer);
+    } else {
+      ({ index, _parent: parent } = this._tree);
+    }
+    for (; parent; { index, _parent: parent } = parent) {
+      if (index > -1)
+        for (let i = index + dir, e = dir < 0 ? -1 : parent._tree.children.length; i != e; i += dir) {
+          let child = parent._tree.children[i];
+          if (this.mode & IterMode.IncludeAnonymous || child instanceof TreeBuffer || !child.type.isAnonymous || hasChild(child))
+            return false;
+        }
+    }
+    return true;
+  }
+  move(dir, enter) {
+    if (enter && this.enterChild(
+      dir,
+      0,
+      4
+      /* Side.DontCare */
+    ))
+      return true;
+    for (; ; ) {
+      if (this.sibling(dir))
+        return true;
+      if (this.atLastNode(dir) || !this.parent())
+        return false;
+    }
+  }
+  /**
+  Move to the next node in a
+  [pre-order](https://en.wikipedia.org/wiki/Tree_traversal#Pre-order,_NLR)
+  traversal, going from a node to its first child or, if the
+  current node is empty or `enter` is false, its next sibling or
+  the next sibling of the first parent node that has one.
+  */
+  next(enter = true) {
+    return this.move(1, enter);
+  }
+  /**
+  Move to the next node in a last-to-first pre-order traversal. A
+  node is followed by its last child or, if it has none, its
+  previous sibling or the previous sibling of the first parent
+  node that has one.
+  */
+  prev(enter = true) {
+    return this.move(-1, enter);
+  }
+  /**
+  Move the cursor to the innermost node that covers `pos`. If
+  `side` is -1, it will enter nodes that end at `pos`. If it is 1,
+  it will enter nodes that start at `pos`.
+  */
+  moveTo(pos, side = 0) {
+    while (this.from == this.to || (side < 1 ? this.from >= pos : this.from > pos) || (side > -1 ? this.to <= pos : this.to < pos))
+      if (!this.parent())
+        break;
+    while (this.enterChild(1, pos, side)) {
+    }
+    return this;
+  }
+  /**
+  Get a [syntax node](#common.SyntaxNode) at the cursor's current
+  position.
+  */
+  get node() {
+    if (!this.buffer)
+      return this._tree;
+    let cache = this.bufferNode, result = null, depth = 0;
+    if (cache && cache.context == this.buffer) {
+      scan: for (let index = this.index, d = this.stack.length; d >= 0; ) {
+        for (let c = cache; c; c = c._parent)
+          if (c.index == index) {
+            if (index == this.index)
+              return c;
+            result = c;
+            depth = d + 1;
+            break scan;
+          }
+        index = this.stack[--d];
+      }
+    }
+    for (let i = depth; i < this.stack.length; i++)
+      result = new BufferNode(this.buffer, result, this.stack[i]);
+    return this.bufferNode = new BufferNode(this.buffer, result, this.index);
+  }
+  /**
+  Get the [tree](#common.Tree) that represents the current node, if
+  any. Will return null when the node is in a [tree
+  buffer](#common.TreeBuffer).
+  */
+  get tree() {
+    return this.buffer ? null : this._tree._tree;
+  }
+  /**
+  Iterate over the current node and all its descendants, calling
+  `enter` when entering a node and `leave`, if given, when leaving
+  one. When `enter` returns `false`, any children of that node are
+  skipped, and `leave` isn't called for it.
+  */
+  iterate(enter, leave) {
+    for (let depth = 0; ; ) {
+      let mustLeave = false;
+      if (this.type.isAnonymous || enter(this) !== false) {
+        if (this.firstChild()) {
+          depth++;
+          continue;
+        }
+        if (!this.type.isAnonymous)
+          mustLeave = true;
+      }
+      for (; ; ) {
+        if (mustLeave && leave)
+          leave(this);
+        mustLeave = this.type.isAnonymous;
+        if (!depth)
+          return;
+        if (this.nextSibling())
+          break;
+        this.parent();
+        depth--;
+        mustLeave = true;
+      }
+    }
+  }
+  /**
+  Test whether the current node matches a given context—a sequence
+  of direct parent node names. Empty strings in the context array
+  are treated as wildcards.
+  */
+  matchContext(context) {
+    if (!this.buffer)
+      return matchNodeContext(this.node.parent, context);
+    let { buffer } = this.buffer, { types } = buffer.set;
+    for (let i = context.length - 1, d = this.stack.length - 1; i >= 0; d--) {
+      if (d < 0)
+        return matchNodeContext(this._tree, context, i);
+      let type = types[buffer.buffer[this.stack[d]]];
+      if (!type.isAnonymous) {
+        if (context[i] && context[i] != type.name)
+          return false;
+        i--;
+      }
+    }
+    return true;
+  }
+};
+function hasChild(tree) {
+  return tree.children.some((ch) => ch instanceof TreeBuffer || !ch.type.isAnonymous || hasChild(ch));
+}
+function buildTree(data) {
+  var _a2;
+  let { buffer, nodeSet: nodeSet2, maxBufferLength = DefaultBufferLength, reused = [], minRepeatType = nodeSet2.types.length } = data;
+  let cursor = Array.isArray(buffer) ? new FlatBufferCursor(buffer, buffer.length) : buffer;
+  let types = nodeSet2.types;
+  let contextHash = 0, lookAhead = 0;
+  function takeNode(parentStart, minPos, children2, positions2, inRepeat, depth) {
+    let { id, start, end, size } = cursor;
+    let lookAheadAtStart = lookAhead, contextAtStart = contextHash;
+    if (size < 0) {
+      cursor.next();
+      if (size == -1) {
+        let node2 = reused[id];
+        children2.push(node2);
+        positions2.push(start - parentStart);
+        return;
+      } else if (size == -3) {
+        contextHash = id;
+        return;
+      } else if (size == -4) {
+        lookAhead = id;
+        return;
+      } else {
+        throw new RangeError(`Unrecognized record size: ${size}`);
+      }
+    }
+    let type = types[id], node, buffer2;
+    let startPos = start - parentStart;
+    if (end - start <= maxBufferLength && (buffer2 = findBufferSize(cursor.pos - minPos, inRepeat))) {
+      let data2 = new Uint16Array(buffer2.size - buffer2.skip);
+      let endPos = cursor.pos - buffer2.size, index = data2.length;
+      while (cursor.pos > endPos)
+        index = copyToBuffer(buffer2.start, data2, index);
+      node = new TreeBuffer(data2, end - buffer2.start, nodeSet2);
+      startPos = buffer2.start - parentStart;
+    } else {
+      let endPos = cursor.pos - size;
+      cursor.next();
+      let localChildren = [], localPositions = [];
+      let localInRepeat = id >= minRepeatType ? id : -1;
+      let lastGroup = 0, lastEnd = end;
+      while (cursor.pos > endPos) {
+        if (localInRepeat >= 0 && cursor.id == localInRepeat && cursor.size >= 0) {
+          if (cursor.end <= lastEnd - maxBufferLength) {
+            makeRepeatLeaf(localChildren, localPositions, start, lastGroup, cursor.end, lastEnd, localInRepeat, lookAheadAtStart, contextAtStart);
+            lastGroup = localChildren.length;
+            lastEnd = cursor.end;
+          }
+          cursor.next();
+        } else if (depth > 2500) {
+          takeFlatNode(start, endPos, localChildren, localPositions);
+        } else {
+          takeNode(start, endPos, localChildren, localPositions, localInRepeat, depth + 1);
+        }
+      }
+      if (localInRepeat >= 0 && lastGroup > 0 && lastGroup < localChildren.length)
+        makeRepeatLeaf(localChildren, localPositions, start, lastGroup, start, lastEnd, localInRepeat, lookAheadAtStart, contextAtStart);
+      localChildren.reverse();
+      localPositions.reverse();
+      if (localInRepeat > -1 && lastGroup > 0) {
+        let make = makeBalanced(type, contextAtStart);
+        node = balanceRange(type, localChildren, localPositions, 0, localChildren.length, 0, end - start, make, make);
+      } else {
+        node = makeTree(type, localChildren, localPositions, end - start, lookAheadAtStart - end, contextAtStart);
+      }
+    }
+    children2.push(node);
+    positions2.push(startPos);
+  }
+  function takeFlatNode(parentStart, minPos, children2, positions2) {
+    let nodes = [];
+    let nodeCount = 0, stopAt = -1;
+    while (cursor.pos > minPos) {
+      let { id, start, end, size } = cursor;
+      if (size > 4) {
+        cursor.next();
+      } else if (stopAt > -1 && start < stopAt) {
+        break;
+      } else {
+        if (stopAt < 0)
+          stopAt = end - maxBufferLength;
+        nodes.push(id, start, end);
+        nodeCount++;
+        cursor.next();
+      }
+    }
+    if (nodeCount) {
+      let buffer2 = new Uint16Array(nodeCount * 4);
+      let start = nodes[nodes.length - 2];
+      for (let i = nodes.length - 3, j = 0; i >= 0; i -= 3) {
+        buffer2[j++] = nodes[i];
+        buffer2[j++] = nodes[i + 1] - start;
+        buffer2[j++] = nodes[i + 2] - start;
+        buffer2[j++] = j;
+      }
+      children2.push(new TreeBuffer(buffer2, nodes[2] - start, nodeSet2));
+      positions2.push(start - parentStart);
+    }
+  }
+  function makeBalanced(type, contextHash2) {
+    return (children2, positions2, length2) => {
+      let lookAhead2 = 0, lastI = children2.length - 1, last, lookAheadProp;
+      if (lastI >= 0 && (last = children2[lastI]) instanceof Tree) {
+        if (!lastI && last.type == type && last.length == length2)
+          return last;
+        if (lookAheadProp = last.prop(NodeProp.lookAhead))
+          lookAhead2 = positions2[lastI] + last.length + lookAheadProp;
+      }
+      return makeTree(type, children2, positions2, length2, lookAhead2, contextHash2);
+    };
+  }
+  function makeRepeatLeaf(children2, positions2, base, i, from, to, type, lookAhead2, contextHash2) {
+    let localChildren = [], localPositions = [];
+    while (children2.length > i) {
+      localChildren.push(children2.pop());
+      localPositions.push(positions2.pop() + base - from);
+    }
+    children2.push(makeTree(nodeSet2.types[type], localChildren, localPositions, to - from, lookAhead2 - to, contextHash2));
+    positions2.push(from - base);
+  }
+  function makeTree(type, children2, positions2, length2, lookAhead2, contextHash2, props) {
+    if (contextHash2) {
+      let pair = [NodeProp.contextHash, contextHash2];
+      props = props ? [pair].concat(props) : [pair];
+    }
+    if (lookAhead2 > 25) {
+      let pair = [NodeProp.lookAhead, lookAhead2];
+      props = props ? [pair].concat(props) : [pair];
+    }
+    return new Tree(type, children2, positions2, length2, props);
+  }
+  function findBufferSize(maxSize, inRepeat) {
+    let fork = cursor.fork();
+    let size = 0, start = 0, skip = 0, minStart = fork.end - maxBufferLength;
+    let result = { size: 0, start: 0, skip: 0 };
+    scan: for (let minPos = fork.pos - maxSize; fork.pos > minPos; ) {
+      let nodeSize2 = fork.size;
+      if (fork.id == inRepeat && nodeSize2 >= 0) {
+        result.size = size;
+        result.start = start;
+        result.skip = skip;
+        skip += 4;
+        size += 4;
+        fork.next();
+        continue;
+      }
+      let startPos = fork.pos - nodeSize2;
+      if (nodeSize2 < 0 || startPos < minPos || fork.start < minStart)
+        break;
+      let localSkipped = fork.id >= minRepeatType ? 4 : 0;
+      let nodeStart = fork.start;
+      fork.next();
+      while (fork.pos > startPos) {
+        if (fork.size < 0) {
+          if (fork.size == -3 || fork.size == -4)
+            localSkipped += 4;
+          else
+            break scan;
+        } else if (fork.id >= minRepeatType) {
+          localSkipped += 4;
+        }
+        fork.next();
+      }
+      start = nodeStart;
+      size += nodeSize2;
+      skip += localSkipped;
+    }
+    if (inRepeat < 0 || size == maxSize) {
+      result.size = size;
+      result.start = start;
+      result.skip = skip;
+    }
+    return result.size > 4 ? result : void 0;
+  }
+  function copyToBuffer(bufferStart, buffer2, index) {
+    let { id, start, end, size } = cursor;
+    cursor.next();
+    if (size >= 0 && id < minRepeatType) {
+      let startIndex = index;
+      if (size > 4) {
+        let endPos = cursor.pos - (size - 4);
+        while (cursor.pos > endPos)
+          index = copyToBuffer(bufferStart, buffer2, index);
+      }
+      buffer2[--index] = startIndex;
+      buffer2[--index] = end - bufferStart;
+      buffer2[--index] = start - bufferStart;
+      buffer2[--index] = id;
+    } else if (size == -3) {
+      contextHash = id;
+    } else if (size == -4) {
+      lookAhead = id;
+    }
+    return index;
+  }
+  let children = [], positions = [];
+  while (cursor.pos > 0)
+    takeNode(data.start || 0, data.bufferStart || 0, children, positions, -1, 0);
+  let length = (_a2 = data.length) !== null && _a2 !== void 0 ? _a2 : children.length ? positions[0] + children[0].length : 0;
+  return new Tree(types[data.topID], children.reverse(), positions.reverse(), length);
+}
+var nodeSizeCache = /* @__PURE__ */ new WeakMap();
+function nodeSize(balanceType, node) {
+  if (!balanceType.isAnonymous || node instanceof TreeBuffer || node.type != balanceType)
+    return 1;
+  let size = nodeSizeCache.get(node);
+  if (size == null) {
+    size = 1;
+    for (let child of node.children) {
+      if (child.type != balanceType || !(child instanceof Tree)) {
+        size = 1;
+        break;
+      }
+      size += nodeSize(balanceType, child);
+    }
+    nodeSizeCache.set(node, size);
+  }
+  return size;
+}
+function balanceRange(balanceType, children, positions, from, to, start, length, mkTop, mkTree) {
+  let total = 0;
+  for (let i = from; i < to; i++)
+    total += nodeSize(balanceType, children[i]);
+  let maxChild = Math.ceil(
+    total * 1.5 / 8
+    /* Balance.BranchFactor */
+  );
+  let localChildren = [], localPositions = [];
+  function divide(children2, positions2, from2, to2, offset) {
+    for (let i = from2; i < to2; ) {
+      let groupFrom = i, groupStart = positions2[i], groupSize = nodeSize(balanceType, children2[i]);
+      i++;
+      for (; i < to2; i++) {
+        let nextSize = nodeSize(balanceType, children2[i]);
+        if (groupSize + nextSize >= maxChild)
+          break;
+        groupSize += nextSize;
+      }
+      if (i == groupFrom + 1) {
+        if (groupSize > maxChild) {
+          let only = children2[groupFrom];
+          divide(only.children, only.positions, 0, only.children.length, positions2[groupFrom] + offset);
+          continue;
+        }
+        localChildren.push(children2[groupFrom]);
+      } else {
+        let length2 = positions2[i - 1] + children2[i - 1].length - groupStart;
+        localChildren.push(balanceRange(balanceType, children2, positions2, groupFrom, i, groupStart, length2, null, mkTree));
+      }
+      localPositions.push(groupStart + offset - start);
+    }
+  }
+  divide(children, positions, from, to, 0);
+  return (mkTop || mkTree)(localChildren, localPositions, length);
+}
+var TreeFragment = class _TreeFragment {
+  /**
+  Construct a tree fragment. You'll usually want to use
+  [`addTree`](#common.TreeFragment^addTree) and
+  [`applyChanges`](#common.TreeFragment^applyChanges) instead of
+  calling this directly.
+  */
+  constructor(from, to, tree, offset, openStart = false, openEnd = false) {
+    this.from = from;
+    this.to = to;
+    this.tree = tree;
+    this.offset = offset;
+    this.open = (openStart ? 1 : 0) | (openEnd ? 2 : 0);
+  }
+  /**
+  Whether the start of the fragment represents the start of a
+  parse, or the end of a change. (In the second case, it may not
+  be safe to reuse some nodes at the start, depending on the
+  parsing algorithm.)
+  */
+  get openStart() {
+    return (this.open & 1) > 0;
+  }
+  /**
+  Whether the end of the fragment represents the end of a
+  full-document parse, or the start of a change.
+  */
+  get openEnd() {
+    return (this.open & 2) > 0;
+  }
+  /**
+  Create a set of fragments from a freshly parsed tree, or update
+  an existing set of fragments by replacing the ones that overlap
+  with a tree with content from the new tree. When `partial` is
+  true, the parse is treated as incomplete, and the resulting
+  fragment has [`openEnd`](#common.TreeFragment.openEnd) set to
+  true.
+  */
+  static addTree(tree, fragments = [], partial = false) {
+    let result = [new _TreeFragment(0, tree.length, tree, 0, false, partial)];
+    for (let f of fragments)
+      if (f.to > tree.length)
+        result.push(f);
+    return result;
+  }
+  /**
+  Apply a set of edits to an array of fragments, removing or
+  splitting fragments as necessary to remove edited ranges, and
+  adjusting offsets for fragments that moved.
+  */
+  static applyChanges(fragments, changes, minGap = 128) {
+    if (!changes.length)
+      return fragments;
+    let result = [];
+    let fI = 1, nextF = fragments.length ? fragments[0] : null;
+    for (let cI = 0, pos = 0, off = 0; ; cI++) {
+      let nextC = cI < changes.length ? changes[cI] : null;
+      let nextPos = nextC ? nextC.fromA : 1e9;
+      if (nextPos - pos >= minGap)
+        while (nextF && nextF.from < nextPos) {
+          let cut = nextF;
+          if (pos >= cut.from || nextPos <= cut.to || off) {
+            let fFrom = Math.max(cut.from, pos) - off, fTo = Math.min(cut.to, nextPos) - off;
+            cut = fFrom >= fTo ? null : new _TreeFragment(fFrom, fTo, cut.tree, cut.offset + off, cI > 0, !!nextC);
+          }
+          if (cut)
+            result.push(cut);
+          if (nextF.to > nextPos)
+            break;
+          nextF = fI < fragments.length ? fragments[fI++] : null;
+        }
+      if (!nextC)
+        break;
+      pos = nextC.toA;
+      off = nextC.toA - nextC.toB;
+    }
+    return result;
+  }
+};
+var Parser = class {
+  /**
+  Start a parse, returning a [partial parse](#common.PartialParse)
+  object. [`fragments`](#common.TreeFragment) can be passed in to
+  make the parse incremental.
+  
+  By default, the entire input is parsed. You can pass `ranges`,
+  which should be a sorted array of non-empty, non-overlapping
+  ranges, to parse only those ranges. The tree returned in that
+  case will start at `ranges[0].from`.
+  */
+  startParse(input, fragments, ranges) {
+    if (typeof input == "string")
+      input = new StringInput(input);
+    ranges = !ranges ? [new Range(0, input.length)] : ranges.length ? ranges.map((r) => new Range(r.from, r.to)) : [new Range(0, 0)];
+    return this.createParse(input, fragments || [], ranges);
+  }
+  /**
+  Run a full parse, returning the resulting tree.
+  */
+  parse(input, fragments, ranges) {
+    let parse = this.startParse(input, fragments, ranges);
+    for (; ; ) {
+      let done = parse.advance();
+      if (done)
+        return done;
+    }
+  }
+};
+var StringInput = class {
+  constructor(string2) {
+    this.string = string2;
+  }
+  get length() {
+    return this.string.length;
+  }
+  chunk(from) {
+    return this.string.slice(from);
+  }
+  get lineChunks() {
+    return false;
+  }
+  read(from, to) {
+    return this.string.slice(from, to);
+  }
+};
+var stoppedInner = new NodeProp({ perNode: true });
+
+// ../../node_modules/.bun/@codemirror+language@6.12.4/node_modules/@codemirror/language/dist/index.js
+var import_state = require("@codemirror/state");
+var import_view = require("@codemirror/view");
+
+// ../../node_modules/.bun/@lezer+highlight@1.2.3/node_modules/@lezer/highlight/dist/index.js
+var nextTagID = 0;
+var Tag = class _Tag {
+  /**
+  @internal
+  */
+  constructor(name2, set, base, modified) {
+    this.name = name2;
+    this.set = set;
+    this.base = base;
+    this.modified = modified;
+    this.id = nextTagID++;
+  }
+  toString() {
+    let { name: name2 } = this;
+    for (let mod of this.modified)
+      if (mod.name)
+        name2 = `${mod.name}(${name2})`;
+    return name2;
+  }
+  static define(nameOrParent, parent) {
+    let name2 = typeof nameOrParent == "string" ? nameOrParent : "?";
+    if (nameOrParent instanceof _Tag)
+      parent = nameOrParent;
+    if (parent === null || parent === void 0 ? void 0 : parent.base)
+      throw new Error("Can not derive from a modified tag");
+    let tag = new _Tag(name2, [], null, []);
+    tag.set.push(tag);
+    if (parent)
+      for (let t2 of parent.set)
+        tag.set.push(t2);
+    return tag;
+  }
+  /**
+  Define a tag _modifier_, which is a function that, given a tag,
+  will return a tag that is a subtag of the original. Applying the
+  same modifier to a twice tag will return the same value (`m1(t1)
+  == m1(t1)`) and applying multiple modifiers will, regardless or
+  order, produce the same tag (`m1(m2(t1)) == m2(m1(t1))`).
+  
+  When multiple modifiers are applied to a given base tag, each
+  smaller set of modifiers is registered as a parent, so that for
+  example `m1(m2(m3(t1)))` is a subtype of `m1(m2(t1))`,
+  `m1(m3(t1)`, and so on.
+  */
+  static defineModifier(name2) {
+    let mod = new Modifier(name2);
+    return (tag) => {
+      if (tag.modified.indexOf(mod) > -1)
+        return tag;
+      return Modifier.get(tag.base || tag, tag.modified.concat(mod).sort((a, b) => a.id - b.id));
+    };
+  }
+};
+var nextModifierID = 0;
+var Modifier = class _Modifier {
+  constructor(name2) {
+    this.name = name2;
+    this.instances = [];
+    this.id = nextModifierID++;
+  }
+  static get(base, mods) {
+    if (!mods.length)
+      return base;
+    let exists = mods[0].instances.find((t2) => t2.base == base && sameArray(mods, t2.modified));
+    if (exists)
+      return exists;
+    let set = [], tag = new Tag(base.name, set, base, mods);
+    for (let m of mods)
+      m.instances.push(tag);
+    let configs = powerSet(mods);
+    for (let parent of base.set)
+      if (!parent.modified.length)
+        for (let config of configs)
+          set.push(_Modifier.get(parent, config));
+    return tag;
+  }
+};
+function sameArray(a, b) {
+  return a.length == b.length && a.every((x, i) => x == b[i]);
+}
+function powerSet(array) {
+  let sets = [[]];
+  for (let i = 0; i < array.length; i++) {
+    for (let j = 0, e = sets.length; j < e; j++) {
+      sets.push(sets[j].concat(array[i]));
+    }
+  }
+  return sets.sort((a, b) => b.length - a.length);
+}
+function styleTags(spec) {
+  let byName = /* @__PURE__ */ Object.create(null);
+  for (let prop in spec) {
+    let tags2 = spec[prop];
+    if (!Array.isArray(tags2))
+      tags2 = [tags2];
+    for (let part of prop.split(" "))
+      if (part) {
+        let pieces = [], mode = 2, rest = part;
+        for (let pos = 0; ; ) {
+          if (rest == "..." && pos > 0 && pos + 3 == part.length) {
+            mode = 1;
+            break;
+          }
+          let m = /^"(?:[^"\\]|\\.)*?"|[^\/!]+/.exec(rest);
+          if (!m)
+            throw new RangeError("Invalid path: " + part);
+          pieces.push(m[0] == "*" ? "" : m[0][0] == '"' ? JSON.parse(m[0]) : m[0]);
+          pos += m[0].length;
+          if (pos == part.length)
+            break;
+          let next = part[pos++];
+          if (pos == part.length && next == "!") {
+            mode = 0;
+            break;
+          }
+          if (next != "/")
+            throw new RangeError("Invalid path: " + part);
+          rest = part.slice(pos);
+        }
+        let last = pieces.length - 1, inner = pieces[last];
+        if (!inner)
+          throw new RangeError("Invalid path: " + part);
+        let rule = new Rule(tags2, mode, last > 0 ? pieces.slice(0, last) : null);
+        byName[inner] = rule.sort(byName[inner]);
+      }
+  }
+  return ruleNodeProp.add(byName);
+}
+var ruleNodeProp = new NodeProp({
+  combine(a, b) {
+    let cur, root, take;
+    while (a || b) {
+      if (!a || b && a.depth >= b.depth) {
+        take = b;
+        b = b.next;
+      } else {
+        take = a;
+        a = a.next;
+      }
+      if (cur && cur.mode == take.mode && !take.context && !cur.context)
+        continue;
+      let copy = new Rule(take.tags, take.mode, take.context);
+      if (cur)
+        cur.next = copy;
+      else
+        root = copy;
+      cur = copy;
+    }
+    return root;
+  }
+});
+var Rule = class {
+  constructor(tags2, mode, context, next) {
+    this.tags = tags2;
+    this.mode = mode;
+    this.context = context;
+    this.next = next;
+  }
+  get opaque() {
+    return this.mode == 0;
+  }
+  get inherit() {
+    return this.mode == 1;
+  }
+  sort(other) {
+    if (!other || other.depth < this.depth) {
+      this.next = other;
+      return this;
+    }
+    other.next = this.sort(other.next);
+    return other;
+  }
+  get depth() {
+    return this.context ? this.context.length : 0;
+  }
+};
+Rule.empty = new Rule([], 2, null);
+function tagHighlighter(tags2, options) {
+  let map = /* @__PURE__ */ Object.create(null);
+  for (let style of tags2) {
+    if (!Array.isArray(style.tag))
+      map[style.tag.id] = style.class;
+    else
+      for (let tag of style.tag)
+        map[tag.id] = style.class;
+  }
+  let { scope, all = null } = options || {};
+  return {
+    style: (tags3) => {
+      let cls = all;
+      for (let tag of tags3) {
+        for (let sub of tag.set) {
+          let tagClass = map[sub.id];
+          if (tagClass) {
+            cls = cls ? cls + " " + tagClass : tagClass;
+            break;
+          }
+        }
+      }
+      return cls;
+    },
+    scope
+  };
+}
+function highlightTags(highlighters, tags2) {
+  let result = null;
+  for (let highlighter of highlighters) {
+    let value = highlighter.style(tags2);
+    if (value)
+      result = result ? result + " " + value : value;
+  }
+  return result;
+}
+function highlightTree(tree, highlighter, putStyle, from = 0, to = tree.length) {
+  let builder = new HighlightBuilder(from, Array.isArray(highlighter) ? highlighter : [highlighter], putStyle);
+  builder.highlightRange(tree.cursor(), from, to, "", builder.highlighters);
+  builder.flush(to);
+}
+var HighlightBuilder = class {
+  constructor(at, highlighters, span) {
+    this.at = at;
+    this.highlighters = highlighters;
+    this.span = span;
+    this.class = "";
+  }
+  startSpan(at, cls) {
+    if (cls != this.class) {
+      this.flush(at);
+      if (at > this.at)
+        this.at = at;
+      this.class = cls;
+    }
+  }
+  flush(to) {
+    if (to > this.at && this.class)
+      this.span(this.at, to, this.class);
+  }
+  highlightRange(cursor, from, to, inheritedClass, highlighters) {
+    let { type, from: start, to: end } = cursor;
+    if (start >= to || end <= from)
+      return;
+    if (type.isTop)
+      highlighters = this.highlighters.filter((h) => !h.scope || h.scope(type));
+    let cls = inheritedClass;
+    let rule = getStyleTags(cursor) || Rule.empty;
+    let tagCls = highlightTags(highlighters, rule.tags);
+    if (tagCls) {
+      if (cls)
+        cls += " ";
+      cls += tagCls;
+      if (rule.mode == 1)
+        inheritedClass += (inheritedClass ? " " : "") + tagCls;
+    }
+    this.startSpan(Math.max(from, start), cls);
+    if (rule.opaque)
+      return;
+    let mounted = cursor.tree && cursor.tree.prop(NodeProp.mounted);
+    if (mounted && mounted.overlay) {
+      let inner = cursor.node.enter(mounted.overlay[0].from + start, 1);
+      let innerHighlighters = this.highlighters.filter((h) => !h.scope || h.scope(mounted.tree.type));
+      let hasChild2 = cursor.firstChild();
+      for (let i = 0, pos = start; ; i++) {
+        let next = i < mounted.overlay.length ? mounted.overlay[i] : null;
+        let nextPos = next ? next.from + start : end;
+        let rangeFrom = Math.max(from, pos), rangeTo = Math.min(to, nextPos);
+        if (rangeFrom < rangeTo && hasChild2) {
+          while (cursor.from < rangeTo) {
+            this.highlightRange(cursor, rangeFrom, rangeTo, inheritedClass, highlighters);
+            this.startSpan(Math.min(rangeTo, cursor.to), cls);
+            if (cursor.to >= nextPos || !cursor.nextSibling())
+              break;
+          }
+        }
+        if (!next || nextPos > to)
+          break;
+        pos = next.to + start;
+        if (pos > from) {
+          this.highlightRange(inner.cursor(), Math.max(from, next.from + start), Math.min(to, pos), "", innerHighlighters);
+          this.startSpan(Math.min(to, pos), cls);
+        }
+      }
+      if (hasChild2)
+        cursor.parent();
+    } else if (cursor.firstChild()) {
+      if (mounted)
+        inheritedClass = "";
+      do {
+        if (cursor.to <= from)
+          continue;
+        if (cursor.from >= to)
+          break;
+        this.highlightRange(cursor, from, to, inheritedClass, highlighters);
+        this.startSpan(Math.min(to, cursor.to), cls);
+      } while (cursor.nextSibling());
+      cursor.parent();
+    }
+  }
+};
+function getStyleTags(node) {
+  let rule = node.type.prop(ruleNodeProp);
+  while (rule && rule.context && !node.matchContext(rule.context))
+    rule = rule.next;
+  return rule || null;
+}
+var t = Tag.define;
+var comment = t();
+var name = t();
+var typeName = t(name);
+var propertyName = t(name);
+var literal = t();
+var string = t(literal);
+var number = t(literal);
+var content = t();
+var heading = t(content);
+var keyword = t();
+var operator = t();
+var punctuation = t();
+var bracket = t(punctuation);
+var meta = t();
+var tags = {
+  /**
+  A comment.
+  */
+  comment,
+  /**
+  A line [comment](#highlight.tags.comment).
+  */
+  lineComment: t(comment),
+  /**
+  A block [comment](#highlight.tags.comment).
+  */
+  blockComment: t(comment),
+  /**
+  A documentation [comment](#highlight.tags.comment).
+  */
+  docComment: t(comment),
+  /**
+  Any kind of identifier.
+  */
+  name,
+  /**
+  The [name](#highlight.tags.name) of a variable.
+  */
+  variableName: t(name),
+  /**
+  A type [name](#highlight.tags.name).
+  */
+  typeName,
+  /**
+  A tag name (subtag of [`typeName`](#highlight.tags.typeName)).
+  */
+  tagName: t(typeName),
+  /**
+  A property or field [name](#highlight.tags.name).
+  */
+  propertyName,
+  /**
+  An attribute name (subtag of [`propertyName`](#highlight.tags.propertyName)).
+  */
+  attributeName: t(propertyName),
+  /**
+  The [name](#highlight.tags.name) of a class.
+  */
+  className: t(name),
+  /**
+  A label [name](#highlight.tags.name).
+  */
+  labelName: t(name),
+  /**
+  A namespace [name](#highlight.tags.name).
+  */
+  namespace: t(name),
+  /**
+  The [name](#highlight.tags.name) of a macro.
+  */
+  macroName: t(name),
+  /**
+  A literal value.
+  */
+  literal,
+  /**
+  A string [literal](#highlight.tags.literal).
+  */
+  string,
+  /**
+  A documentation [string](#highlight.tags.string).
+  */
+  docString: t(string),
+  /**
+  A character literal (subtag of [string](#highlight.tags.string)).
+  */
+  character: t(string),
+  /**
+  An attribute value (subtag of [string](#highlight.tags.string)).
+  */
+  attributeValue: t(string),
+  /**
+  A number [literal](#highlight.tags.literal).
+  */
+  number,
+  /**
+  An integer [number](#highlight.tags.number) literal.
+  */
+  integer: t(number),
+  /**
+  A floating-point [number](#highlight.tags.number) literal.
+  */
+  float: t(number),
+  /**
+  A boolean [literal](#highlight.tags.literal).
+  */
+  bool: t(literal),
+  /**
+  Regular expression [literal](#highlight.tags.literal).
+  */
+  regexp: t(literal),
+  /**
+  An escape [literal](#highlight.tags.literal), for example a
+  backslash escape in a string.
+  */
+  escape: t(literal),
+  /**
+  A color [literal](#highlight.tags.literal).
+  */
+  color: t(literal),
+  /**
+  A URL [literal](#highlight.tags.literal).
+  */
+  url: t(literal),
+  /**
+  A language keyword.
+  */
+  keyword,
+  /**
+  The [keyword](#highlight.tags.keyword) for the self or this
+  object.
+  */
+  self: t(keyword),
+  /**
+  The [keyword](#highlight.tags.keyword) for null.
+  */
+  null: t(keyword),
+  /**
+  A [keyword](#highlight.tags.keyword) denoting some atomic value.
+  */
+  atom: t(keyword),
+  /**
+  A [keyword](#highlight.tags.keyword) that represents a unit.
+  */
+  unit: t(keyword),
+  /**
+  A modifier [keyword](#highlight.tags.keyword).
+  */
+  modifier: t(keyword),
+  /**
+  A [keyword](#highlight.tags.keyword) that acts as an operator.
+  */
+  operatorKeyword: t(keyword),
+  /**
+  A control-flow related [keyword](#highlight.tags.keyword).
+  */
+  controlKeyword: t(keyword),
+  /**
+  A [keyword](#highlight.tags.keyword) that defines something.
+  */
+  definitionKeyword: t(keyword),
+  /**
+  A [keyword](#highlight.tags.keyword) related to defining or
+  interfacing with modules.
+  */
+  moduleKeyword: t(keyword),
+  /**
+  An operator.
+  */
+  operator,
+  /**
+  An [operator](#highlight.tags.operator) that dereferences something.
+  */
+  derefOperator: t(operator),
+  /**
+  Arithmetic-related [operator](#highlight.tags.operator).
+  */
+  arithmeticOperator: t(operator),
+  /**
+  Logical [operator](#highlight.tags.operator).
+  */
+  logicOperator: t(operator),
+  /**
+  Bit [operator](#highlight.tags.operator).
+  */
+  bitwiseOperator: t(operator),
+  /**
+  Comparison [operator](#highlight.tags.operator).
+  */
+  compareOperator: t(operator),
+  /**
+  [Operator](#highlight.tags.operator) that updates its operand.
+  */
+  updateOperator: t(operator),
+  /**
+  [Operator](#highlight.tags.operator) that defines something.
+  */
+  definitionOperator: t(operator),
+  /**
+  Type-related [operator](#highlight.tags.operator).
+  */
+  typeOperator: t(operator),
+  /**
+  Control-flow [operator](#highlight.tags.operator).
+  */
+  controlOperator: t(operator),
+  /**
+  Program or markup punctuation.
+  */
+  punctuation,
+  /**
+  [Punctuation](#highlight.tags.punctuation) that separates
+  things.
+  */
+  separator: t(punctuation),
+  /**
+  Bracket-style [punctuation](#highlight.tags.punctuation).
+  */
+  bracket,
+  /**
+  Angle [brackets](#highlight.tags.bracket) (usually `<` and `>`
+  tokens).
+  */
+  angleBracket: t(bracket),
+  /**
+  Square [brackets](#highlight.tags.bracket) (usually `[` and `]`
+  tokens).
+  */
+  squareBracket: t(bracket),
+  /**
+  Parentheses (usually `(` and `)` tokens). Subtag of
+  [bracket](#highlight.tags.bracket).
+  */
+  paren: t(bracket),
+  /**
+  Braces (usually `{` and `}` tokens). Subtag of
+  [bracket](#highlight.tags.bracket).
+  */
+  brace: t(bracket),
+  /**
+  Content, for example plain text in XML or markup documents.
+  */
+  content,
+  /**
+  [Content](#highlight.tags.content) that represents a heading.
+  */
+  heading,
+  /**
+  A level 1 [heading](#highlight.tags.heading).
+  */
+  heading1: t(heading),
+  /**
+  A level 2 [heading](#highlight.tags.heading).
+  */
+  heading2: t(heading),
+  /**
+  A level 3 [heading](#highlight.tags.heading).
+  */
+  heading3: t(heading),
+  /**
+  A level 4 [heading](#highlight.tags.heading).
+  */
+  heading4: t(heading),
+  /**
+  A level 5 [heading](#highlight.tags.heading).
+  */
+  heading5: t(heading),
+  /**
+  A level 6 [heading](#highlight.tags.heading).
+  */
+  heading6: t(heading),
+  /**
+  A prose [content](#highlight.tags.content) separator (such as a horizontal rule).
+  */
+  contentSeparator: t(content),
+  /**
+  [Content](#highlight.tags.content) that represents a list.
+  */
+  list: t(content),
+  /**
+  [Content](#highlight.tags.content) that represents a quote.
+  */
+  quote: t(content),
+  /**
+  [Content](#highlight.tags.content) that is emphasized.
+  */
+  emphasis: t(content),
+  /**
+  [Content](#highlight.tags.content) that is styled strong.
+  */
+  strong: t(content),
+  /**
+  [Content](#highlight.tags.content) that is part of a link.
+  */
+  link: t(content),
+  /**
+  [Content](#highlight.tags.content) that is styled as code or
+  monospace.
+  */
+  monospace: t(content),
+  /**
+  [Content](#highlight.tags.content) that has a strike-through
+  style.
+  */
+  strikethrough: t(content),
+  /**
+  Inserted text in a change-tracking format.
+  */
+  inserted: t(),
+  /**
+  Deleted text.
+  */
+  deleted: t(),
+  /**
+  Changed text.
+  */
+  changed: t(),
+  /**
+  An invalid or unsyntactic element.
+  */
+  invalid: t(),
+  /**
+  Metadata or meta-instruction.
+  */
+  meta,
+  /**
+  [Metadata](#highlight.tags.meta) that applies to the entire
+  document.
+  */
+  documentMeta: t(meta),
+  /**
+  [Metadata](#highlight.tags.meta) that annotates or adds
+  attributes to a given syntactic element.
+  */
+  annotation: t(meta),
+  /**
+  Processing instruction or preprocessor directive. Subtag of
+  [meta](#highlight.tags.meta).
+  */
+  processingInstruction: t(meta),
+  /**
+  [Modifier](#highlight.Tag^defineModifier) that indicates that a
+  given element is being defined. Expected to be used with the
+  various [name](#highlight.tags.name) tags.
+  */
+  definition: Tag.defineModifier("definition"),
+  /**
+  [Modifier](#highlight.Tag^defineModifier) that indicates that
+  something is constant. Mostly expected to be used with
+  [variable names](#highlight.tags.variableName).
+  */
+  constant: Tag.defineModifier("constant"),
+  /**
+  [Modifier](#highlight.Tag^defineModifier) used to indicate that
+  a [variable](#highlight.tags.variableName) or [property
+  name](#highlight.tags.propertyName) is being called or defined
+  as a function.
+  */
+  function: Tag.defineModifier("function"),
+  /**
+  [Modifier](#highlight.Tag^defineModifier) that can be applied to
+  [names](#highlight.tags.name) to indicate that they belong to
+  the language's standard environment.
+  */
+  standard: Tag.defineModifier("standard"),
+  /**
+  [Modifier](#highlight.Tag^defineModifier) that indicates a given
+  [names](#highlight.tags.name) is local to some scope.
+  */
+  local: Tag.defineModifier("local"),
+  /**
+  A generic variant [modifier](#highlight.Tag^defineModifier) that
+  can be used to tag language-specific alternative variants of
+  some common tag. It is recommended for themes to define special
+  forms of at least the [string](#highlight.tags.string) and
+  [variable name](#highlight.tags.variableName) tags, since those
+  come up a lot.
+  */
+  special: Tag.defineModifier("special")
+};
+for (let name2 in tags) {
+  let val = tags[name2];
+  if (val instanceof Tag)
+    val.name = name2;
+}
+var classHighlighter = tagHighlighter([
+  { tag: tags.link, class: "tok-link" },
+  { tag: tags.heading, class: "tok-heading" },
+  { tag: tags.emphasis, class: "tok-emphasis" },
+  { tag: tags.strong, class: "tok-strong" },
+  { tag: tags.keyword, class: "tok-keyword" },
+  { tag: tags.atom, class: "tok-atom" },
+  { tag: tags.bool, class: "tok-bool" },
+  { tag: tags.url, class: "tok-url" },
+  { tag: tags.labelName, class: "tok-labelName" },
+  { tag: tags.inserted, class: "tok-inserted" },
+  { tag: tags.deleted, class: "tok-deleted" },
+  { tag: tags.literal, class: "tok-literal" },
+  { tag: tags.string, class: "tok-string" },
+  { tag: tags.number, class: "tok-number" },
+  { tag: [tags.regexp, tags.escape, tags.special(tags.string)], class: "tok-string2" },
+  { tag: tags.variableName, class: "tok-variableName" },
+  { tag: tags.local(tags.variableName), class: "tok-variableName tok-local" },
+  { tag: tags.definition(tags.variableName), class: "tok-variableName tok-definition" },
+  { tag: tags.special(tags.variableName), class: "tok-variableName2" },
+  { tag: tags.definition(tags.propertyName), class: "tok-propertyName tok-definition" },
+  { tag: tags.typeName, class: "tok-typeName" },
+  { tag: tags.namespace, class: "tok-namespace" },
+  { tag: tags.className, class: "tok-className" },
+  { tag: tags.macroName, class: "tok-macroName" },
+  { tag: tags.propertyName, class: "tok-propertyName" },
+  { tag: tags.operator, class: "tok-operator" },
+  { tag: tags.comment, class: "tok-comment" },
+  { tag: tags.meta, class: "tok-meta" },
+  { tag: tags.invalid, class: "tok-invalid" },
+  { tag: tags.punctuation, class: "tok-punctuation" }
+]);
+
+// ../../node_modules/.bun/style-mod@4.1.3/node_modules/style-mod/src/style-mod.js
+var C = "\u037C";
+var COUNT = typeof Symbol == "undefined" ? "__" + C : Symbol.for(C);
+var SET = typeof Symbol == "undefined" ? "__styleSet" + Math.floor(Math.random() * 1e8) : /* @__PURE__ */ Symbol("styleSet");
+var top = typeof globalThis != "undefined" ? globalThis : typeof window != "undefined" ? window : {};
+var StyleModule = class {
+  // :: (Object<Style>, ?{finish: ?(string) → string})
+  // Create a style module from the given spec.
+  //
+  // When `finish` is given, it is called on regular (non-`@`)
+  // selectors (after `&` expansion) to compute the final selector.
+  constructor(spec, options) {
+    this.rules = [];
+    let { finish } = options || {};
+    function splitSelector(selector) {
+      return /^@/.test(selector) ? [selector] : selector.split(/,\s*/);
+    }
+    function render(selectors, spec2, target, isKeyframes) {
+      let local = [], isAt = /^@(\w+)\b/.exec(selectors[0]), keyframes = isAt && isAt[1] == "keyframes";
+      if (isAt && spec2 == null) return target.push(selectors[0] + ";");
+      for (let prop in spec2) {
+        let value = spec2[prop];
+        if (/&/.test(prop)) {
+          render(
+            prop.split(/,\s*/).map((part) => selectors.map((sel) => part.replace(/&/, sel))).reduce((a, b) => a.concat(b)),
+            value,
+            target
+          );
+        } else if (value && typeof value == "object") {
+          if (!isAt) throw new RangeError("The value of a property (" + prop + ") should be a primitive value.");
+          render(splitSelector(prop), value, local, keyframes);
+        } else if (value != null) {
+          local.push(prop.replace(/_.*/, "").replace(/[A-Z]/g, (l) => "-" + l.toLowerCase()) + ": " + value + ";");
+        }
+      }
+      if (local.length || keyframes) {
+        target.push((finish && !isAt && !isKeyframes ? selectors.map(finish) : selectors).join(", ") + " {" + local.join(" ") + "}");
+      }
+    }
+    for (let prop in spec) render(splitSelector(prop), spec[prop], this.rules);
+  }
+  // :: () → string
+  // Returns a string containing the module's CSS rules.
+  getRules() {
+    return this.rules.join("\n");
+  }
+  // :: () → string
+  // Generate a new unique CSS class name.
+  static newName() {
+    let id = top[COUNT] || 1;
+    top[COUNT] = id + 1;
+    return C + id.toString(36);
+  }
+  // :: (union<Document, ShadowRoot>, union<[StyleModule], StyleModule>, ?{nonce: ?string})
+  //
+  // Mount the given set of modules in the given DOM root, which ensures
+  // that the CSS rules defined by the module are available in that
+  // context.
+  //
+  // Rules are only added to the document once per root.
+  //
+  // Rule order will follow the order of the modules, so that rules from
+  // modules later in the array take precedence of those from earlier
+  // modules. If you call this function multiple times for the same root
+  // in a way that changes the order of already mounted modules, the old
+  // order will be changed.
+  //
+  // If a Content Security Policy nonce is provided, it is added to
+  // the `<style>` tag generated by the library.
+  static mount(root, modules, options) {
+    let set = root[SET], nonce = options && options.nonce;
+    if (!set) set = new StyleSet(root, nonce);
+    else if (nonce) set.setNonce(nonce);
+    set.mount(Array.isArray(modules) ? modules : [modules], root);
+  }
+};
+var adoptedSet = /* @__PURE__ */ new Map();
+var StyleSet = class {
+  constructor(root, nonce) {
+    let doc = root.ownerDocument || root, win = doc.defaultView;
+    if (!root.head && root.adoptedStyleSheets && win.CSSStyleSheet) {
+      let adopted = adoptedSet.get(doc);
+      if (adopted) return root[SET] = adopted;
+      this.sheet = new win.CSSStyleSheet();
+      adoptedSet.set(doc, this);
+    } else {
+      this.styleTag = doc.createElement("style");
+      if (nonce) this.styleTag.setAttribute("nonce", nonce);
+    }
+    this.modules = [];
+    root[SET] = this;
+  }
+  mount(modules, root) {
+    let sheet = this.sheet;
+    let pos = 0, j = 0;
+    for (let i = 0; i < modules.length; i++) {
+      let mod = modules[i], index = this.modules.indexOf(mod);
+      if (index < j && index > -1) {
+        this.modules.splice(index, 1);
+        j--;
+        index = -1;
+      }
+      if (index == -1) {
+        this.modules.splice(j++, 0, mod);
+        if (sheet) for (let k = 0; k < mod.rules.length; k++)
+          sheet.insertRule(mod.rules[k], pos++);
+      } else {
+        while (j < index) pos += this.modules[j++].rules.length;
+        pos += mod.rules.length;
+        j++;
+      }
+    }
+    if (sheet) {
+      if (root.adoptedStyleSheets.indexOf(this.sheet) < 0)
+        root.adoptedStyleSheets = [this.sheet, ...root.adoptedStyleSheets];
+    } else {
+      let text = "";
+      for (let i = 0; i < this.modules.length; i++)
+        text += this.modules[i].getRules() + "\n";
+      this.styleTag.textContent = text;
+      let target = root.head || root;
+      if (this.styleTag.parentNode != target)
+        target.insertBefore(this.styleTag, target.firstChild);
+    }
+  }
+  setNonce(nonce) {
+    if (this.styleTag && this.styleTag.getAttribute("nonce") != nonce)
+      this.styleTag.setAttribute("nonce", nonce);
+  }
+};
+
+// ../../node_modules/.bun/@codemirror+language@6.12.4/node_modules/@codemirror/language/dist/index.js
+var _a;
+var languageDataProp = /* @__PURE__ */ new NodeProp();
+function defineLanguageFacet(baseData) {
+  return import_state.Facet.define({
+    combine: baseData ? (values) => values.concat(baseData) : void 0
+  });
+}
+var sublanguageProp = /* @__PURE__ */ new NodeProp();
+var Language = class {
+  /**
+  Construct a language object. If you need to invoke this
+  directly, first define a data facet with
+  [`defineLanguageFacet`](https://codemirror.net/6/docs/ref/#language.defineLanguageFacet), and then
+  configure your parser to [attach](https://codemirror.net/6/docs/ref/#language.languageDataProp) it
+  to the language's outer syntax node.
+  */
+  constructor(data, parser, extraExtensions = [], name2 = "") {
+    this.data = data;
+    this.name = name2;
+    if (!import_state.EditorState.prototype.hasOwnProperty("tree"))
+      Object.defineProperty(import_state.EditorState.prototype, "tree", { get() {
+        return syntaxTree(this);
+      } });
+    this.parser = parser;
+    this.extension = [
+      language.of(this),
+      import_state.EditorState.languageData.of((state, pos, side) => {
+        let top2 = topNodeAt(state, pos, side), data2 = top2.type.prop(languageDataProp);
+        if (!data2)
+          return [];
+        let base = state.facet(data2), sub = top2.type.prop(sublanguageProp);
+        if (sub) {
+          let innerNode = top2.resolve(pos - top2.from, side);
+          for (let sublang of sub)
+            if (sublang.test(innerNode, state)) {
+              let data3 = state.facet(sublang.facet);
+              return sublang.type == "replace" ? data3 : data3.concat(base);
+            }
+        }
+        return base;
+      })
+    ].concat(extraExtensions);
+  }
+  /**
+  Query whether this language is active at the given position.
+  */
+  isActiveAt(state, pos, side = -1) {
+    return topNodeAt(state, pos, side).type.prop(languageDataProp) == this.data;
+  }
+  /**
+  Find the document regions that were parsed using this language.
+  The returned regions will _include_ any nested languages rooted
+  in this language, when those exist.
+  */
+  findRegions(state) {
+    let lang = state.facet(language);
+    if ((lang === null || lang === void 0 ? void 0 : lang.data) == this.data)
+      return [{ from: 0, to: state.doc.length }];
+    if (!lang || !lang.allowsNesting)
+      return [];
+    let result = [];
+    let explore = (tree, from) => {
+      if (tree.prop(languageDataProp) == this.data) {
+        result.push({ from, to: from + tree.length });
+        return;
+      }
+      let mount = tree.prop(NodeProp.mounted);
+      if (mount) {
+        if (mount.tree.prop(languageDataProp) == this.data) {
+          if (mount.overlay)
+            for (let r of mount.overlay)
+              result.push({ from: r.from + from, to: r.to + from });
+          else
+            result.push({ from, to: from + tree.length });
+          return;
+        } else if (mount.overlay) {
+          let size = result.length;
+          explore(mount.tree, mount.overlay[0].from + from);
+          if (result.length > size)
+            return;
+        }
+      }
+      for (let i = 0; i < tree.children.length; i++) {
+        let ch = tree.children[i];
+        if (ch instanceof Tree)
+          explore(ch, tree.positions[i] + from);
+      }
+    };
+    explore(syntaxTree(state), 0);
+    return result;
+  }
+  /**
+  Indicates whether this language allows nested languages. The
+  default implementation returns true.
+  */
+  get allowsNesting() {
+    return true;
+  }
+};
+Language.setState = /* @__PURE__ */ import_state.StateEffect.define();
+function topNodeAt(state, pos, side) {
+  let topLang = state.facet(language), tree = syntaxTree(state).topNode;
+  if (!topLang || topLang.allowsNesting) {
+    for (let node = tree; node; node = node.enter(pos, side, IterMode.ExcludeBuffers | IterMode.EnterBracketed))
+      if (node.type.isTop)
+        tree = node;
+  }
+  return tree;
+}
+function syntaxTree(state) {
+  let field2 = state.field(Language.state, false);
+  return field2 ? field2.tree : Tree.empty;
+}
+var DocInput = class {
+  /**
+  Create an input object for the given document.
+  */
+  constructor(doc) {
+    this.doc = doc;
+    this.cursorPos = 0;
+    this.string = "";
+    this.cursor = doc.iter();
+  }
+  get length() {
+    return this.doc.length;
+  }
+  syncTo(pos) {
+    this.string = this.cursor.next(pos - this.cursorPos).value;
+    this.cursorPos = pos + this.string.length;
+    return this.cursorPos - this.string.length;
+  }
+  chunk(pos) {
+    this.syncTo(pos);
+    return this.string;
+  }
+  get lineChunks() {
+    return true;
+  }
+  read(from, to) {
+    let stringStart = this.cursorPos - this.string.length;
+    if (from < stringStart || to >= this.cursorPos)
+      return this.doc.sliceString(from, to);
+    else
+      return this.string.slice(from - stringStart, to - stringStart);
+  }
+};
+var currentContext = null;
+var ParseContext = class _ParseContext {
+  constructor(parser, state, fragments = [], tree, treeLen, viewport, skipped, scheduleOn) {
+    this.parser = parser;
+    this.state = state;
+    this.fragments = fragments;
+    this.tree = tree;
+    this.treeLen = treeLen;
+    this.viewport = viewport;
+    this.skipped = skipped;
+    this.scheduleOn = scheduleOn;
+    this.parse = null;
+    this.tempSkipped = [];
+  }
+  /**
+  @internal
+  */
+  static create(parser, state, viewport) {
+    return new _ParseContext(parser, state, [], Tree.empty, 0, viewport, [], null);
+  }
+  startParse() {
+    return this.parser.startParse(new DocInput(this.state.doc), this.fragments);
+  }
+  /**
+  @internal
+  */
+  work(until, upto) {
+    if (upto != null && upto >= this.state.doc.length)
+      upto = void 0;
+    if (this.tree != Tree.empty && this.isDone(upto !== null && upto !== void 0 ? upto : this.state.doc.length)) {
+      this.takeTree();
+      return true;
+    }
+    return this.withContext(() => {
+      var _a2;
+      if (typeof until == "number") {
+        let endTime = Date.now() + until;
+        until = () => Date.now() > endTime;
+      }
+      if (!this.parse)
+        this.parse = this.startParse();
+      if (upto != null && (this.parse.stoppedAt == null || this.parse.stoppedAt > upto) && upto < this.state.doc.length)
+        this.parse.stopAt(upto);
+      for (; ; ) {
+        let done = this.parse.advance();
+        if (done) {
+          this.fragments = this.withoutTempSkipped(TreeFragment.addTree(done, this.fragments, this.parse.stoppedAt != null));
+          this.treeLen = (_a2 = this.parse.stoppedAt) !== null && _a2 !== void 0 ? _a2 : this.state.doc.length;
+          this.tree = done;
+          this.parse = null;
+          if (this.treeLen < (upto !== null && upto !== void 0 ? upto : this.state.doc.length))
+            this.parse = this.startParse();
+          else
+            return true;
+        }
+        if (until())
+          return false;
+      }
+    });
+  }
+  /**
+  @internal
+  */
+  takeTree() {
+    let pos, tree;
+    if (this.parse && (pos = this.parse.parsedPos) >= this.treeLen) {
+      if (this.parse.stoppedAt == null || this.parse.stoppedAt > pos)
+        this.parse.stopAt(pos);
+      this.withContext(() => {
+        while (!(tree = this.parse.advance())) {
+        }
+      });
+      this.treeLen = pos;
+      this.tree = tree;
+      this.fragments = this.withoutTempSkipped(TreeFragment.addTree(this.tree, this.fragments, true));
+      this.parse = null;
+    }
+  }
+  withContext(f) {
+    let prev = currentContext;
+    currentContext = this;
+    try {
+      return f();
+    } finally {
+      currentContext = prev;
+    }
+  }
+  withoutTempSkipped(fragments) {
+    for (let r; r = this.tempSkipped.pop(); )
+      fragments = cutFragments(fragments, r.from, r.to);
+    return fragments;
+  }
+  /**
+  @internal
+  */
+  changes(changes, newState) {
+    let { fragments, tree, treeLen, viewport, skipped } = this;
+    this.takeTree();
+    if (!changes.empty) {
+      let ranges = [];
+      changes.iterChangedRanges((fromA, toA, fromB, toB) => ranges.push({ fromA, toA, fromB, toB }));
+      fragments = TreeFragment.applyChanges(fragments, ranges);
+      tree = Tree.empty;
+      treeLen = 0;
+      viewport = { from: changes.mapPos(viewport.from, -1), to: changes.mapPos(viewport.to, 1) };
+      if (this.skipped.length) {
+        skipped = [];
+        for (let r of this.skipped) {
+          let from = changes.mapPos(r.from, 1), to = changes.mapPos(r.to, -1);
+          if (from < to)
+            skipped.push({ from, to });
+        }
+      }
+    }
+    return new _ParseContext(this.parser, newState, fragments, tree, treeLen, viewport, skipped, this.scheduleOn);
+  }
+  /**
+  @internal
+  */
+  updateViewport(viewport) {
+    if (this.viewport.from == viewport.from && this.viewport.to == viewport.to)
+      return false;
+    this.viewport = viewport;
+    let startLen = this.skipped.length;
+    for (let i = 0; i < this.skipped.length; i++) {
+      let { from, to } = this.skipped[i];
+      if (from < viewport.to && to > viewport.from) {
+        this.fragments = cutFragments(this.fragments, from, to);
+        this.skipped.splice(i--, 1);
+      }
+    }
+    if (this.skipped.length >= startLen)
+      return false;
+    this.reset();
+    return true;
+  }
+  /**
+  @internal
+  */
+  reset() {
+    if (this.parse) {
+      this.takeTree();
+      this.parse = null;
+    }
+  }
+  /**
+  Notify the parse scheduler that the given region was skipped
+  because it wasn't in view, and the parse should be restarted
+  when it comes into view.
+  */
+  skipUntilInView(from, to) {
+    this.skipped.push({ from, to });
+  }
+  /**
+  Returns a parser intended to be used as placeholder when
+  asynchronously loading a nested parser. It'll skip its input and
+  mark it as not-really-parsed, so that the next update will parse
+  it again.
+  
+  When `until` is given, a reparse will be scheduled when that
+  promise resolves.
+  */
+  static getSkippingParser(until) {
+    return new class extends Parser {
+      createParse(input, fragments, ranges) {
+        let from = ranges[0].from, to = ranges[ranges.length - 1].to;
+        let parser = {
+          parsedPos: from,
+          advance() {
+            let cx = currentContext;
+            if (cx) {
+              for (let r of ranges)
+                cx.tempSkipped.push(r);
+              if (until)
+                cx.scheduleOn = cx.scheduleOn ? Promise.all([cx.scheduleOn, until]) : until;
+            }
+            this.parsedPos = to;
+            return new Tree(NodeType.none, [], [], to - from);
+          },
+          stoppedAt: null,
+          stopAt() {
+          }
+        };
+        return parser;
+      }
+    }();
+  }
+  /**
+  @internal
+  */
+  isDone(upto) {
+    upto = Math.min(upto, this.state.doc.length);
+    let frags = this.fragments;
+    return this.treeLen >= upto && frags.length && frags[0].from == 0 && frags[0].to >= upto;
+  }
+  /**
+  Get the context for the current parse, or `null` if no editor
+  parse is in progress.
+  */
+  static get() {
+    return currentContext;
+  }
+};
+function cutFragments(fragments, from, to) {
+  return TreeFragment.applyChanges(fragments, [{ fromA: from, toA: to, fromB: from, toB: to }]);
+}
+var LanguageState = class _LanguageState {
+  constructor(context) {
+    this.context = context;
+    this.tree = context.tree;
+  }
+  apply(tr) {
+    if (!tr.docChanged && this.tree == this.context.tree)
+      return this;
+    let newCx = this.context.changes(tr.changes, tr.state);
+    let upto = this.context.treeLen == tr.startState.doc.length ? void 0 : Math.max(tr.changes.mapPos(this.context.treeLen), newCx.viewport.to);
+    if (!newCx.work(20, upto))
+      newCx.takeTree();
+    return new _LanguageState(newCx);
+  }
+  static init(state) {
+    let vpTo = Math.min(3e3, state.doc.length);
+    let parseState = ParseContext.create(state.facet(language).parser, state, { from: 0, to: vpTo });
+    if (!parseState.work(20, vpTo))
+      parseState.takeTree();
+    return new _LanguageState(parseState);
+  }
+};
+Language.state = /* @__PURE__ */ import_state.StateField.define({
+  create: LanguageState.init,
+  update(value, tr) {
+    for (let e of tr.effects)
+      if (e.is(Language.setState))
+        return e.value;
+    if (tr.startState.facet(language) != tr.state.facet(language))
+      return LanguageState.init(tr.state);
+    return value.apply(tr);
+  }
+});
+var requestIdle = (callback) => {
+  let timeout = setTimeout(
+    () => callback(),
+    500
+    /* Work.MaxPause */
+  );
+  return () => clearTimeout(timeout);
+};
+if (typeof requestIdleCallback != "undefined")
+  requestIdle = (callback) => {
+    let idle = -1, timeout = setTimeout(
+      () => {
+        idle = requestIdleCallback(callback, {
+          timeout: 500 - 100
+          /* Work.MinPause */
+        });
+      },
+      100
+      /* Work.MinPause */
+    );
+    return () => idle < 0 ? clearTimeout(timeout) : cancelIdleCallback(idle);
+  };
+var isInputPending = typeof navigator != "undefined" && ((_a = navigator.scheduling) === null || _a === void 0 ? void 0 : _a.isInputPending) ? () => navigator.scheduling.isInputPending() : null;
+var parseWorker = /* @__PURE__ */ import_view.ViewPlugin.fromClass(class ParseWorker {
+  constructor(view) {
+    this.view = view;
+    this.working = null;
+    this.workScheduled = 0;
+    this.chunkEnd = -1;
+    this.chunkBudget = -1;
+    this.work = this.work.bind(this);
+    this.scheduleWork();
+  }
+  update(update) {
+    let cx = this.view.state.field(Language.state).context;
+    if (cx.updateViewport(update.view.viewport) || this.view.viewport.to > cx.treeLen)
+      this.scheduleWork();
+    if (update.docChanged || update.selectionSet) {
+      if (this.view.hasFocus)
+        this.chunkBudget += 50;
+      this.scheduleWork();
+    }
+    this.checkAsyncSchedule(cx);
+  }
+  scheduleWork() {
+    if (this.working)
+      return;
+    let { state } = this.view, field2 = state.field(Language.state);
+    if (field2.tree != field2.context.tree || !field2.context.isDone(state.doc.length))
+      this.working = requestIdle(this.work);
+  }
+  work(deadline) {
+    this.working = null;
+    let now = Date.now();
+    if (this.chunkEnd < now && (this.chunkEnd < 0 || this.view.hasFocus)) {
+      this.chunkEnd = now + 3e4;
+      this.chunkBudget = 3e3;
+    }
+    if (this.chunkBudget <= 0)
+      return;
+    let { state, viewport: { to: vpTo } } = this.view, field2 = state.field(Language.state);
+    if (field2.tree == field2.context.tree && field2.context.isDone(
+      vpTo + 1e5
+      /* Work.MaxParseAhead */
+    ))
+      return;
+    let endTime = Date.now() + Math.min(this.chunkBudget, 100, deadline && !isInputPending ? Math.max(25, deadline.timeRemaining() - 5) : 1e9);
+    let viewportFirst = field2.context.treeLen < vpTo && state.doc.length > vpTo + 1e3;
+    let done = field2.context.work(() => {
+      return isInputPending && isInputPending() || Date.now() > endTime;
+    }, vpTo + (viewportFirst ? 0 : 1e5));
+    this.chunkBudget -= Date.now() - now;
+    if (done || this.chunkBudget <= 0) {
+      field2.context.takeTree();
+      this.view.dispatch({ effects: Language.setState.of(new LanguageState(field2.context)) });
+    }
+    if (this.chunkBudget > 0 && !(done && !viewportFirst))
+      this.scheduleWork();
+    this.checkAsyncSchedule(field2.context);
+  }
+  checkAsyncSchedule(cx) {
+    if (cx.scheduleOn) {
+      this.workScheduled++;
+      cx.scheduleOn.then(() => this.scheduleWork()).catch((err) => (0, import_view.logException)(this.view.state, err)).then(() => this.workScheduled--);
+      cx.scheduleOn = null;
+    }
+  }
+  destroy() {
+    if (this.working)
+      this.working();
+  }
+  isWorking() {
+    return !!(this.working || this.workScheduled > 0);
+  }
+}, {
+  eventHandlers: { focus() {
+    this.scheduleWork();
+  } }
+});
+var language = /* @__PURE__ */ import_state.Facet.define({
+  combine(languages) {
+    return languages.length ? languages[0] : null;
+  },
+  enables: (language2) => [
+    Language.state,
+    parseWorker,
+    import_view.EditorView.contentAttributes.compute([language2], (state) => {
+      let lang = state.facet(language2);
+      return lang && lang.name ? { "data-language": lang.name } : {};
+    })
+  ]
+});
+var indentUnit = /* @__PURE__ */ import_state.Facet.define({
+  combine: (values) => {
+    if (!values.length)
+      return "  ";
+    let unit = values[0];
+    if (!unit || /\S/.test(unit) || Array.from(unit).some((e) => e != unit[0]))
+      throw new Error("Invalid indent unit: " + JSON.stringify(values[0]));
+    return unit;
+  }
+});
+function getIndentUnit(state) {
+  let unit = state.facet(indentUnit);
+  return unit.charCodeAt(0) == 9 ? state.tabSize * unit.length : unit.length;
+}
+var indentNodeProp = /* @__PURE__ */ new NodeProp();
+var HighlightStyle = class _HighlightStyle {
+  constructor(specs, options) {
+    this.specs = specs;
+    let modSpec;
+    function def(spec) {
+      let cls = StyleModule.newName();
+      (modSpec || (modSpec = /* @__PURE__ */ Object.create(null)))["." + cls] = spec;
+      return cls;
+    }
+    const all = typeof options.all == "string" ? options.all : options.all ? def(options.all) : void 0;
+    const scopeOpt = options.scope;
+    this.scope = scopeOpt instanceof Language ? (type) => type.prop(languageDataProp) == scopeOpt.data : scopeOpt ? (type) => type == scopeOpt : void 0;
+    this.style = tagHighlighter(specs.map((style) => ({
+      tag: style.tag,
+      class: style.class || def(Object.assign({}, style, { tag: null }))
+    })), {
+      all
+    }).style;
+    this.module = modSpec ? new StyleModule(modSpec) : null;
+    this.themeType = options.themeType;
+  }
+  /**
+  Create a highlighter style that associates the given styles to
+  the given tags. The specs must be objects that hold a style tag
+  or array of tags in their `tag` property, and either a single
+  `class` property providing a static CSS class (for highlighter
+  that rely on external styling), or a
+  [`style-mod`](https://code.haverbeke.berlin/marijn/style-mod#documentation)-style
+  set of CSS properties (which define the styling for those tags).
+  
+  The CSS rules created for a highlighter will be emitted in the
+  order of the spec's properties. That means that for elements that
+  have multiple tags associated with them, styles defined further
+  down in the list will have a higher CSS precedence than styles
+  defined earlier.
+  */
+  static define(specs, options) {
+    return new _HighlightStyle(specs, options || {});
+  }
+};
+var highlighterFacet = /* @__PURE__ */ import_state.Facet.define();
+var fallbackHighlighter = /* @__PURE__ */ import_state.Facet.define({
+  combine(values) {
+    return values.length ? [values[0]] : null;
+  }
+});
+function getHighlighters(state) {
+  let main = state.facet(highlighterFacet);
+  return main.length ? main : state.facet(fallbackHighlighter);
+}
+function syntaxHighlighting(highlighter, options) {
+  let ext = [treeHighlighter], themeType;
+  if (highlighter instanceof HighlightStyle) {
+    if (highlighter.module)
+      ext.push(import_view.EditorView.styleModule.of(highlighter.module));
+    themeType = highlighter.themeType;
+  }
+  if (options === null || options === void 0 ? void 0 : options.fallback)
+    ext.push(fallbackHighlighter.of(highlighter));
+  else if (themeType)
+    ext.push(highlighterFacet.computeN([import_view.EditorView.darkTheme], (state) => {
+      return state.facet(import_view.EditorView.darkTheme) == (themeType == "dark") ? [highlighter] : [];
+    }));
+  else
+    ext.push(highlighterFacet.of(highlighter));
+  return ext;
+}
+var TreeHighlighter = class {
+  constructor(view) {
+    this.markCache = /* @__PURE__ */ Object.create(null);
+    this.tree = syntaxTree(view.state);
+    this.decorations = this.buildDeco(view, getHighlighters(view.state));
+    this.decoratedTo = view.viewport.to;
+  }
+  update(update) {
+    let tree = syntaxTree(update.state), highlighters = getHighlighters(update.state);
+    let styleChange = highlighters != getHighlighters(update.startState);
+    let { viewport } = update.view, decoratedToMapped = update.changes.mapPos(this.decoratedTo, 1);
+    if (tree.length < viewport.to && !styleChange && tree.type == this.tree.type && decoratedToMapped >= viewport.to) {
+      this.decorations = this.decorations.map(update.changes);
+      this.decoratedTo = decoratedToMapped;
+    } else if (tree != this.tree || update.viewportChanged || styleChange) {
+      this.tree = tree;
+      this.decorations = this.buildDeco(update.view, highlighters);
+      this.decoratedTo = viewport.to;
+    }
+  }
+  buildDeco(view, highlighters) {
+    if (!highlighters || !this.tree.length)
+      return import_view.Decoration.none;
+    let builder = new import_state.RangeSetBuilder();
+    for (let { from, to } of view.visibleRanges) {
+      highlightTree(this.tree, highlighters, (from2, to2, style) => {
+        builder.add(from2, to2, this.markCache[style] || (this.markCache[style] = import_view.Decoration.mark({ class: style })));
+      }, from, to);
+    }
+    return builder.finish();
+  }
+};
+var treeHighlighter = /* @__PURE__ */ import_state.Prec.high(/* @__PURE__ */ import_view.ViewPlugin.fromClass(TreeHighlighter, {
+  decorations: (v) => v.decorations
+}));
+var defaultHighlightStyle = /* @__PURE__ */ HighlightStyle.define([
+  {
+    tag: tags.meta,
+    color: "#404740"
+  },
+  {
+    tag: tags.link,
+    textDecoration: "underline"
+  },
+  {
+    tag: tags.heading,
+    textDecoration: "underline",
+    fontWeight: "bold"
+  },
+  {
+    tag: tags.emphasis,
+    fontStyle: "italic"
+  },
+  {
+    tag: tags.strong,
+    fontWeight: "bold"
+  },
+  {
+    tag: tags.strikethrough,
+    textDecoration: "line-through"
+  },
+  {
+    tag: tags.keyword,
+    color: "#708"
+  },
+  {
+    tag: [tags.atom, tags.bool, tags.url, tags.contentSeparator, tags.labelName],
+    color: "#219"
+  },
+  {
+    tag: [tags.literal, tags.inserted],
+    color: "#164"
+  },
+  {
+    tag: [tags.string, tags.deleted],
+    color: "#a11"
+  },
+  {
+    tag: [tags.regexp, tags.escape, /* @__PURE__ */ tags.special(tags.string)],
+    color: "#e40"
+  },
+  {
+    tag: /* @__PURE__ */ tags.definition(tags.variableName),
+    color: "#00f"
+  },
+  {
+    tag: /* @__PURE__ */ tags.local(tags.variableName),
+    color: "#30a"
+  },
+  {
+    tag: [tags.typeName, tags.namespace],
+    color: "#085"
+  },
+  {
+    tag: tags.className,
+    color: "#167"
+  },
+  {
+    tag: [/* @__PURE__ */ tags.special(tags.variableName), tags.macroName],
+    color: "#256"
+  },
+  {
+    tag: /* @__PURE__ */ tags.definition(tags.propertyName),
+    color: "#00c"
+  },
+  {
+    tag: tags.comment,
+    color: "#940"
+  },
+  {
+    tag: tags.invalid,
+    color: "#f00"
+  }
+]);
+function countCol(string2, end, tabSize, startIndex = 0, startValue = 0) {
+  if (end == null) {
+    end = string2.search(/[^\s\u00a0]/);
+    if (end == -1)
+      end = string2.length;
+  }
+  let n = startValue;
+  for (let i = startIndex; i < end; i++) {
+    if (string2.charCodeAt(i) == 9)
+      n += tabSize - n % tabSize;
+    else
+      n++;
+  }
+  return n;
+}
+var StringStream = class {
+  /**
+  Create a stream.
+  */
+  constructor(string2, tabSize, indentUnit2, overrideIndent) {
+    this.string = string2;
+    this.tabSize = tabSize;
+    this.indentUnit = indentUnit2;
+    this.overrideIndent = overrideIndent;
+    this.pos = 0;
+    this.start = 0;
+    this.lastColumnPos = 0;
+    this.lastColumnValue = 0;
+  }
+  /**
+  True if we are at the end of the line.
+  */
+  eol() {
+    return this.pos >= this.string.length;
+  }
+  /**
+  True if we are at the start of the line.
+  */
+  sol() {
+    return this.pos == 0;
+  }
+  /**
+  Get the next code unit after the current position, or undefined
+  if we're at the end of the line.
+  */
+  peek() {
+    return this.string.charAt(this.pos) || void 0;
+  }
+  /**
+  Read the next code unit and advance `this.pos`.
+  */
+  next() {
+    if (this.pos < this.string.length)
+      return this.string.charAt(this.pos++);
+  }
+  /**
+  Match the next character against the given string, regular
+  expression, or predicate. Consume and return it if it matches.
+  */
+  eat(match) {
+    let ch = this.string.charAt(this.pos);
+    let ok;
+    if (typeof match == "string")
+      ok = ch == match;
+    else
+      ok = ch && (match instanceof RegExp ? match.test(ch) : match(ch));
+    if (ok) {
+      ++this.pos;
+      return ch;
+    }
+  }
+  /**
+  Continue matching characters that match the given string,
+  regular expression, or predicate function. Return true if any
+  characters were consumed.
+  */
+  eatWhile(match) {
+    let start = this.pos;
+    while (this.eat(match)) {
+    }
+    return this.pos > start;
+  }
+  /**
+  Consume whitespace ahead of `this.pos`. Return true if any was
+  found.
+  */
+  eatSpace() {
+    let start = this.pos;
+    while (/[\s\u00a0]/.test(this.string.charAt(this.pos)))
+      ++this.pos;
+    return this.pos > start;
+  }
+  /**
+  Move to the end of the line.
+  */
+  skipToEnd() {
+    this.pos = this.string.length;
+  }
+  /**
+  Move to directly before the given character, if found on the
+  current line.
+  */
+  skipTo(ch) {
+    let found = this.string.indexOf(ch, this.pos);
+    if (found > -1) {
+      this.pos = found;
+      return true;
+    }
+  }
+  /**
+  Move back `n` characters.
+  */
+  backUp(n) {
+    this.pos -= n;
+  }
+  /**
+  Get the column position at `this.pos`.
+  */
+  column() {
+    if (this.lastColumnPos < this.start) {
+      this.lastColumnValue = countCol(this.string, this.start, this.tabSize, this.lastColumnPos, this.lastColumnValue);
+      this.lastColumnPos = this.start;
+    }
+    return this.lastColumnValue;
+  }
+  /**
+  Get the indentation column of the current line.
+  */
+  indentation() {
+    var _a2;
+    return (_a2 = this.overrideIndent) !== null && _a2 !== void 0 ? _a2 : countCol(this.string, null, this.tabSize);
+  }
+  /**
+  Match the input against the given string or regular expression
+  (which should start with a `^`). Return true or the regexp match
+  if it matches.
+  
+  Unless `consume` is set to `false`, this will move `this.pos`
+  past the matched text.
+  
+  When matching a string `caseInsensitive` can be set to true to
+  make the match case-insensitive.
+  */
+  match(pattern, consume, caseInsensitive) {
+    if (typeof pattern == "string") {
+      let cased = (str) => caseInsensitive ? str.toLowerCase() : str;
+      let substr = this.string.substr(this.pos, pattern.length);
+      if (cased(substr) == cased(pattern)) {
+        if (consume !== false)
+          this.pos += pattern.length;
+        return true;
+      } else
+        return null;
+    } else {
+      let match = this.string.slice(this.pos).match(pattern);
+      if (match && match.index > 0)
+        return null;
+      if (match && consume !== false)
+        this.pos += match[0].length;
+      return match;
+    }
+  }
+  /**
+  Get the current token.
+  */
+  current() {
+    return this.string.slice(this.start, this.pos);
+  }
+};
+function fullParser(spec) {
+  return {
+    name: spec.name || "",
+    token: spec.token,
+    blankLine: spec.blankLine || (() => {
+    }),
+    startState: spec.startState || (() => true),
+    copyState: spec.copyState || defaultCopyState,
+    indent: spec.indent || (() => null),
+    languageData: spec.languageData || {},
+    tokenTable: spec.tokenTable || noTokens,
+    mergeTokens: spec.mergeTokens !== false
+  };
+}
+function defaultCopyState(state) {
+  if (typeof state != "object")
+    return state;
+  let newState = {};
+  for (let prop in state) {
+    let val = state[prop];
+    newState[prop] = val instanceof Array ? val.slice() : val;
+  }
+  return newState;
+}
+var IndentedFrom = /* @__PURE__ */ new WeakMap();
+var StreamLanguage = class _StreamLanguage extends Language {
+  constructor(parser) {
+    let data = defineLanguageFacet(parser.languageData);
+    let p = fullParser(parser), self;
+    let impl = new class extends Parser {
+      createParse(input, fragments, ranges) {
+        return new Parse(self, input, fragments, ranges);
+      }
+    }();
+    super(data, impl, [], parser.name);
+    this.topNode = docID(data, this);
+    self = this;
+    this.streamParser = p;
+    this.stateAfter = new NodeProp({ perNode: true });
+    this.tokenTable = parser.tokenTable ? new TokenTable(p.tokenTable) : defaultTokenTable;
+  }
+  /**
+  Define a stream language.
+  */
+  static define(spec) {
+    return new _StreamLanguage(spec);
+  }
+  /**
+  @internal
+  */
+  getIndent(cx) {
+    let from = void 0;
+    let { overrideIndentation } = cx.options;
+    if (overrideIndentation) {
+      from = IndentedFrom.get(cx.state);
+      if (from != null && from < cx.pos - 1e4)
+        from = void 0;
+    }
+    let start = findState(this, cx.node.tree, cx.node.from, cx.node.from, from !== null && from !== void 0 ? from : cx.pos), statePos, state;
+    if (start) {
+      state = start.state;
+      statePos = start.pos + 1;
+    } else {
+      state = this.streamParser.startState(cx.unit);
+      statePos = cx.node.from;
+    }
+    if (cx.pos - statePos > 1e4)
+      return null;
+    while (statePos < cx.pos) {
+      let line2 = cx.state.doc.lineAt(statePos), end = Math.min(cx.pos, line2.to);
+      if (line2.length) {
+        let indentation = overrideIndentation ? overrideIndentation(line2.from) : -1;
+        let stream = new StringStream(line2.text, cx.state.tabSize, cx.unit, indentation < 0 ? void 0 : indentation);
+        while (stream.pos < end - line2.from)
+          readToken(this.streamParser.token, stream, state);
+      } else {
+        this.streamParser.blankLine(state, cx.unit);
+      }
+      if (end == cx.pos)
+        break;
+      statePos = line2.to + 1;
+    }
+    let line = cx.lineAt(cx.pos);
+    if (overrideIndentation && from == null)
+      IndentedFrom.set(cx.state, line.from);
+    return this.streamParser.indent(state, /^\s*(.*)/.exec(line.text)[1], cx);
+  }
+  get allowsNesting() {
+    return false;
+  }
+};
+function findState(lang, tree, off, startPos, before) {
+  let state = off >= startPos && off + tree.length <= before && tree.prop(lang.stateAfter);
+  if (state)
+    return { state: lang.streamParser.copyState(state), pos: off + tree.length };
+  for (let i = tree.children.length - 1; i >= 0; i--) {
+    let child = tree.children[i], pos = off + tree.positions[i];
+    let found = child instanceof Tree && pos < before && findState(lang, child, pos, startPos, before);
+    if (found)
+      return found;
+  }
+  return null;
+}
+function cutTree(lang, tree, from, to, inside) {
+  if (inside && from <= 0 && to >= tree.length)
+    return tree;
+  if (!inside && from == 0 && tree.type == lang.topNode)
+    inside = true;
+  for (let i = tree.children.length - 1; i >= 0; i--) {
+    let pos = tree.positions[i], child = tree.children[i], inner;
+    if (pos < to && child instanceof Tree) {
+      if (!(inner = cutTree(lang, child, from - pos, to - pos, inside)))
+        break;
+      return !inside ? inner : new Tree(tree.type, tree.children.slice(0, i).concat(inner), tree.positions.slice(0, i + 1), pos + inner.length);
+    }
+  }
+  return null;
+}
+function findStartInFragments(lang, fragments, startPos, endPos, editorState) {
+  for (let f of fragments) {
+    let from = f.from + (f.openStart ? 25 : 0), to = f.to - (f.openEnd ? 25 : 0);
+    let found = from <= startPos && to > startPos && findState(lang, f.tree, 0 - f.offset, startPos, to), tree;
+    if (found && found.pos <= endPos && (tree = cutTree(lang, f.tree, startPos + f.offset, found.pos + f.offset, false)))
+      return { state: found.state, tree };
+  }
+  return { state: lang.streamParser.startState(editorState ? getIndentUnit(editorState) : 4), tree: Tree.empty };
+}
+var Parse = class {
+  constructor(lang, input, fragments, ranges) {
+    this.lang = lang;
+    this.input = input;
+    this.fragments = fragments;
+    this.ranges = ranges;
+    this.stoppedAt = null;
+    this.chunks = [];
+    this.chunkPos = [];
+    this.chunk = [];
+    this.chunkReused = void 0;
+    this.rangeIndex = 0;
+    this.to = ranges[ranges.length - 1].to;
+    let context = ParseContext.get(), from = ranges[0].from;
+    let { state, tree } = findStartInFragments(lang, fragments, from, this.to, context === null || context === void 0 ? void 0 : context.state);
+    this.state = state;
+    this.parsedPos = this.chunkStart = from + tree.length;
+    for (let i = 0; i < tree.children.length; i++) {
+      this.chunks.push(tree.children[i]);
+      this.chunkPos.push(tree.positions[i]);
+    }
+    if (context && this.parsedPos < context.viewport.from - 1e5 && ranges.some((r) => r.from <= context.viewport.from && r.to >= context.viewport.from)) {
+      this.state = this.lang.streamParser.startState(getIndentUnit(context.state));
+      context.skipUntilInView(this.parsedPos, context.viewport.from);
+      this.parsedPos = context.viewport.from;
+    }
+    this.moveRangeIndex();
+  }
+  advance() {
+    let context = ParseContext.get();
+    let parseEnd = this.stoppedAt == null ? this.to : Math.min(this.to, this.stoppedAt);
+    let end = Math.min(
+      parseEnd,
+      this.chunkStart + 512
+      /* C.ChunkSize */
+    );
+    if (context)
+      end = Math.min(end, context.viewport.to);
+    while (this.parsedPos < end)
+      this.parseLine(context);
+    if (this.chunkStart < this.parsedPos)
+      this.finishChunk();
+    if (this.parsedPos >= parseEnd)
+      return this.finish();
+    if (context && this.parsedPos >= context.viewport.to) {
+      context.skipUntilInView(this.parsedPos, parseEnd);
+      return this.finish();
+    }
+    return null;
+  }
+  stopAt(pos) {
+    this.stoppedAt = pos;
+  }
+  lineAfter(pos) {
+    let chunk = this.input.chunk(pos);
+    if (!this.input.lineChunks) {
+      let eol = chunk.indexOf("\n");
+      if (eol > -1)
+        chunk = chunk.slice(0, eol);
+    } else if (chunk == "\n") {
+      chunk = "";
+    }
+    return pos + chunk.length <= this.to ? chunk : chunk.slice(0, this.to - pos);
+  }
+  nextLine() {
+    let from = this.parsedPos, line = this.lineAfter(from), end = from + line.length;
+    for (let index = this.rangeIndex; ; ) {
+      let rangeEnd = this.ranges[index].to;
+      if (rangeEnd >= end)
+        break;
+      line = line.slice(0, rangeEnd - (end - line.length));
+      index++;
+      if (index == this.ranges.length)
+        break;
+      let rangeStart = this.ranges[index].from;
+      let after = this.lineAfter(rangeStart);
+      line += after;
+      end = rangeStart + after.length;
+    }
+    return { line, end };
+  }
+  skipGapsTo(pos, offset, side) {
+    for (; ; ) {
+      let end = this.ranges[this.rangeIndex].to, offPos = pos + offset;
+      if (side > 0 ? end > offPos : end >= offPos)
+        break;
+      let start = this.ranges[++this.rangeIndex].from;
+      offset += start - end;
+    }
+    return offset;
+  }
+  moveRangeIndex() {
+    while (this.ranges[this.rangeIndex].to < this.parsedPos)
+      this.rangeIndex++;
+  }
+  emitToken(id, from, to, offset) {
+    let size = 4;
+    if (this.ranges.length > 1) {
+      offset = this.skipGapsTo(from, offset, 1);
+      from += offset;
+      let len0 = this.chunk.length;
+      offset = this.skipGapsTo(to, offset, -1);
+      to += offset;
+      size += this.chunk.length - len0;
+    }
+    let last = this.chunk.length - 4;
+    if (this.lang.streamParser.mergeTokens && size == 4 && last >= 0 && this.chunk[last] == id && this.chunk[last + 2] == from)
+      this.chunk[last + 2] = to;
+    else
+      this.chunk.push(id, from, to, size);
+    return offset;
+  }
+  parseLine(context) {
+    let { line, end } = this.nextLine(), offset = 0, { streamParser } = this.lang;
+    let stream = new StringStream(line, context ? context.state.tabSize : 4, context ? getIndentUnit(context.state) : 2);
+    if (stream.eol()) {
+      streamParser.blankLine(this.state, stream.indentUnit);
+    } else {
+      while (!stream.eol()) {
+        let token = readToken(streamParser.token, stream, this.state);
+        if (token)
+          offset = this.emitToken(this.lang.tokenTable.resolve(token), this.parsedPos + stream.start, this.parsedPos + stream.pos, offset);
+        if (stream.start > 1e4)
+          break;
+      }
+    }
+    this.parsedPos = end;
+    this.moveRangeIndex();
+    if (this.parsedPos < this.to)
+      this.parsedPos++;
+  }
+  finishChunk() {
+    let tree = Tree.build({
+      buffer: this.chunk,
+      start: this.chunkStart,
+      length: this.parsedPos - this.chunkStart,
+      nodeSet,
+      topID: 0,
+      maxBufferLength: 512,
+      reused: this.chunkReused
+    });
+    tree = new Tree(tree.type, tree.children, tree.positions, tree.length, [[this.lang.stateAfter, this.lang.streamParser.copyState(this.state)]]);
+    this.chunks.push(tree);
+    this.chunkPos.push(this.chunkStart - this.ranges[0].from);
+    this.chunk = [];
+    this.chunkReused = void 0;
+    this.chunkStart = this.parsedPos;
+  }
+  finish() {
+    return new Tree(this.lang.topNode, this.chunks, this.chunkPos, this.parsedPos - this.ranges[0].from).balance();
+  }
+};
+function readToken(token, stream, state) {
+  stream.start = stream.pos;
+  for (let i = 0; i < 10; i++) {
+    let result = token(stream, state);
+    if (stream.pos > stream.start)
+      return result;
+  }
+  throw new Error("Stream parser failed to advance stream.");
+}
+var noTokens = /* @__PURE__ */ Object.create(null);
+var typeArray = [NodeType.none];
+var nodeSet = /* @__PURE__ */ new NodeSet(typeArray);
+var warned = [];
+var byTag = /* @__PURE__ */ Object.create(null);
+var defaultTable = /* @__PURE__ */ Object.create(null);
+for (let [legacyName, name2] of [
+  ["variable", "variableName"],
+  ["variable-2", "variableName.special"],
+  ["string-2", "string.special"],
+  ["def", "variableName.definition"],
+  ["tag", "tagName"],
+  ["attribute", "attributeName"],
+  ["type", "typeName"],
+  ["builtin", "variableName.standard"],
+  ["qualifier", "modifier"],
+  ["error", "invalid"],
+  ["header", "heading"],
+  ["property", "propertyName"]
+])
+  defaultTable[legacyName] = /* @__PURE__ */ createTokenType(noTokens, name2);
+var TokenTable = class {
+  constructor(extra) {
+    this.extra = extra;
+    this.table = Object.assign(/* @__PURE__ */ Object.create(null), defaultTable);
+  }
+  resolve(tag) {
+    return !tag ? 0 : this.table[tag] || (this.table[tag] = createTokenType(this.extra, tag));
+  }
+};
+var defaultTokenTable = /* @__PURE__ */ new TokenTable(noTokens);
+function warnForPart(part, msg) {
+  if (warned.indexOf(part) > -1)
+    return;
+  warned.push(part);
+  console.warn(msg);
+}
+function createTokenType(extra, tagStr) {
+  let tags$1 = [];
+  for (let name3 of tagStr.split(" ")) {
+    let found = [];
+    for (let part of name3.split(".")) {
+      let value = extra[part] || tags[part];
+      if (!value) {
+        warnForPart(part, `Unknown highlighting tag ${part}`);
+      } else if (typeof value == "function") {
+        if (!found.length)
+          warnForPart(part, `Modifier ${part} used at start of tag`);
+        else
+          found = found.map(value);
+      } else {
+        if (found.length)
+          warnForPart(part, `Tag ${part} used as modifier`);
+        else
+          found = Array.isArray(value) ? value : [value];
+      }
+    }
+    for (let tag of found)
+      tags$1.push(tag);
+  }
+  if (!tags$1.length)
+    return 0;
+  let name2 = tagStr.replace(/ /g, "_"), key = name2 + " " + tags$1.map((t2) => t2.id);
+  let known = byTag[key];
+  if (known)
+    return known.id;
+  let type = byTag[key] = NodeType.define({
+    id: typeArray.length,
+    name: name2,
+    props: [styleTags({ [name2]: tags$1 })]
+  });
+  typeArray.push(type);
+  return type.id;
+}
+function docID(data, lang) {
+  let type = NodeType.define({ id: typeArray.length, name: "Document", props: [
+    languageDataProp.add(() => data),
+    indentNodeProp.add(() => (cx) => lang.getIndent(cx))
+  ], top: true });
+  typeArray.push(type);
+  return type;
+}
+var marks = {
+  rtl: /* @__PURE__ */ import_view.Decoration.mark({ class: "cm-iso", inclusive: true, attributes: { dir: "rtl" }, bidiIsolate: import_view.Direction.RTL }),
+  ltr: /* @__PURE__ */ import_view.Decoration.mark({ class: "cm-iso", inclusive: true, attributes: { dir: "ltr" }, bidiIsolate: import_view.Direction.LTR }),
+  auto: /* @__PURE__ */ import_view.Decoration.mark({ class: "cm-iso", inclusive: true, attributes: { dir: "auto" }, bidiIsolate: null })
+};
+
+// src/syntax/cook-tokenizer.ts
+function blockValueToken(stream, state) {
+  if (!state.inBlockValue) return null;
+  if (state.lineStart && stream.match(/^\s+/)) {
+    state.lineStart = false;
+    return "docString";
+  }
+  if (state.lineStart) state.inBlockValue = false;
+  if (!state.inBlockValue) return null;
+  stream.next();
+  return "docString";
+}
+function delimiterToken(stream, state) {
+  if (!state.lineStart || !stream.match(/^---\s*$/)) return null;
+  if (!state.frontmatterDone) {
+    state.inFrontmatter = !state.inFrontmatter;
+    if (!state.inFrontmatter) state.frontmatterDone = true;
+  }
+  state.lineStart = false;
+  state.frontmatterValue = false;
+  return "meta";
+}
+function frontmatterKeyToken(stream, state) {
+  if (!state.lineStart || !stream.match(/^[\w.-]+:/)) return null;
+  state.lineStart = false;
+  state.frontmatterValue = true;
+  return "atom";
+}
+function frontmatterValueToken(stream, state) {
+  if (state.frontmatterValue) {
+    if (stream.match(/^\s*[|>][-+]?/)) {
+      state.frontmatterValue = false;
+      state.inBlockValue = true;
+      return "operator";
+    }
+    if (stream.match(/^\s*https?:\/\/\S+/)) {
+      state.frontmatterValue = false;
+      return "url";
+    }
+    state.frontmatterValue = false;
+  }
+  state.lineStart = false;
+  stream.next();
+  return "string";
+}
+function frontmatterToken(stream, state) {
+  const blockToken = blockValueToken(stream, state);
+  if (blockToken !== null) return blockToken;
+  const metadataDelimiter = delimiterToken(stream, state);
+  if (metadataDelimiter !== null) return metadataDelimiter;
+  if (!state.inFrontmatter) return null;
+  const metadataKey = frontmatterKeyToken(stream, state);
+  if (metadataKey !== null) return metadataKey;
+  return frontmatterValueToken(stream, state);
+}
+function cooklangToken(stream, state) {
+  if (state.lineStart && stream.match(/^=+\s*.+/)) {
+    state.lineStart = false;
+    return "heading";
+  }
+  state.lineStart = false;
+  if (stream.match(/^--.*$/)) {
+    return "comment";
+  }
+  if (stream.match(/@\w[\w\s]*\{[^}]*\}/)) {
+    return "variableName";
+  }
+  if (stream.match(/@\w[\w-]*/)) {
+    return "variableName";
+  }
+  if (stream.match(/#\w[\w\s]*\{[^}]*\}/)) {
+    return "keyword";
+  }
+  if (stream.match(/#\w[\w-]*/)) {
+    return "keyword";
+  }
+  if (stream.match(/~\w*\{[^}]*\}/)) {
+    return "number";
+  }
+  stream.next();
+  return null;
+}
+var cookParser = {
   startState() {
-    return { inFrontmatter: false, frontmatterDone: false, lineStart: true };
+    return {
+      inFrontmatter: false,
+      frontmatterDone: false,
+      frontmatterValue: false,
+      inBlockValue: false,
+      lineStart: true
+    };
   },
   token(stream, state) {
     if (stream.sol()) {
       state.lineStart = true;
     }
-    if (state.lineStart && stream.match(/^---\s*$/)) {
-      if (!state.frontmatterDone) {
-        state.inFrontmatter = !state.inFrontmatter;
-        if (!state.inFrontmatter) state.frontmatterDone = true;
-      }
-      state.lineStart = false;
-      return "meta";
-    }
-    if (state.inFrontmatter) {
-      if (state.lineStart && stream.match(/^[\w.-]+:/)) {
-        state.lineStart = false;
-        return "atom";
-      }
-      stream.next();
-      state.lineStart = false;
-      return "string";
-    }
-    state.lineStart = false;
-    if (stream.sol() && stream.match(/^=+\s*.+/)) {
-      return "heading";
-    }
-    if (stream.match(/^--.*$/)) {
-      return "comment";
-    }
-    if (stream.match(/@\w[\w\s]*\{[^}]*\}/)) {
-      return "variableName";
-    }
-    if (stream.match(/@\w[\w-]*/)) {
-      return "variableName";
-    }
-    if (stream.match(/#\w[\w\s]*\{[^}]*\}/)) {
-      return "keyword";
-    }
-    if (stream.match(/#\w[\w-]*/)) {
-      return "keyword";
-    }
-    if (stream.match(/~\w*\{[^}]*\}/)) {
-      return "number";
-    }
-    stream.next();
-    return null;
+    const metadataToken = frontmatterToken(stream, state);
+    return metadataToken != null ? metadataToken : cooklangToken(stream, state);
   }
-});
+};
+
+// src/syntax/cook-language.ts
+var cookLanguage = StreamLanguage.define(cookParser);
+var cookHighlightStyle = HighlightStyle.define([
+  { tag: tags.variableName, color: "var(--color-purple)", fontWeight: 500 },
+  { tag: tags.keyword, color: "var(--color-cyan)", fontWeight: 500 },
+  { tag: tags.number, color: "var(--color-orange)", fontWeight: 600 },
+  { tag: tags.heading, color: "var(--text-normal)", fontWeight: 700 },
+  { tag: tags.meta, color: "var(--text-faint)" },
+  { tag: tags.atom, color: "var(--color-blue)", fontWeight: 500 },
+  { tag: tags.string, color: "var(--text-normal)" },
+  { tag: tags.docString, color: "var(--text-muted)" },
+  { tag: tags.operator, color: "var(--text-faint)" },
+  { tag: tags.url, color: "var(--text-accent)" },
+  { tag: tags.comment, color: "var(--text-faint)", fontStyle: "italic" }
+]);
+var cookHighlighting = syntaxHighlighting(cookHighlightStyle);
 
 // ../../node_modules/.bun/@chevrotain+utils@13.2.0/node_modules/@chevrotain/utils/lib/src/print.js
 function PRINT_ERROR(msg) {
@@ -170,7 +3956,7 @@ var NonTerminal = class extends AbstractProduction {
     visitor.visit(this);
   }
 };
-var Rule = class extends AbstractProduction {
+var Rule2 = class extends AbstractProduction {
   constructor(options) {
     super(options.definition);
     this.orgText = "";
@@ -318,7 +4104,7 @@ function serializeProduction(node) {
       serializedTerminal.pattern = pattern instanceof RegExp ? pattern.source : pattern;
     }
     return serializedTerminal;
-  } else if (node instanceof Rule) {
+  } else if (node instanceof Rule2) {
     return {
       type: "Rule",
       name: node.name,
@@ -356,7 +4142,7 @@ var GAstVisitor = class {
         return this.visitAlternation(nodeAny);
       case Terminal:
         return this.visitTerminal(nodeAny);
-      case Rule:
+      case Rule2:
         return this.visitRule(nodeAny);
       /* c8 ignore next 2 */
       default:
@@ -397,7 +4183,7 @@ var GAstVisitor = class {
 
 // ../../node_modules/.bun/@chevrotain+gast@13.2.0/node_modules/@chevrotain/gast/lib/src/helpers.js
 function isSequenceProd(prod) {
-  return prod instanceof Alternative || prod instanceof Option || prod instanceof Repetition || prod instanceof RepetitionMandatory || prod instanceof RepetitionMandatoryWithSeparator || prod instanceof RepetitionWithSeparator || prod instanceof Terminal || prod instanceof Rule;
+  return prod instanceof Alternative || prod instanceof Option || prod instanceof Repetition || prod instanceof RepetitionMandatory || prod instanceof RepetitionMandatoryWithSeparator || prod instanceof RepetitionWithSeparator || prod instanceof Terminal || prod instanceof Rule2;
 }
 function isOptionalProd(prod, alreadyVisited = []) {
   const isDirectlyOptional = prod instanceof Option || prod instanceof Repetition || prod instanceof RepetitionWithSeparator;
@@ -1184,24 +4970,24 @@ var RegExpParser = class {
     return groupAst;
   }
   positiveInteger() {
-    let number = this.popChar();
-    if (decimalPatternNoZero.test(number) === false) {
+    let number2 = this.popChar();
+    if (decimalPatternNoZero.test(number2) === false) {
       throw Error("Expecting a positive integer");
     }
     while (decimalPattern.test(this.peekChar(0))) {
-      number += this.popChar();
+      number2 += this.popChar();
     }
-    return parseInt(number, 10);
+    return parseInt(number2, 10);
   }
   integerIncludingZero() {
-    let number = this.popChar();
-    if (decimalPattern.test(number) === false) {
+    let number2 = this.popChar();
+    if (decimalPattern.test(number2) === false) {
       throw Error("Expecting an integer");
     }
     while (decimalPattern.test(this.peekChar(0))) {
-      number += this.popChar();
+      number2 += this.popChar();
     }
-    return parseInt(number, 10);
+    return parseInt(number2, 10);
   }
   patternCharacter() {
     const nextChar = this.popChar();
@@ -1927,7 +5713,7 @@ function analyzeTokenTypes(tokenTypes, options) {
   };
 }
 function getAsciiClass(pattern) {
-  var _a, _b;
+  var _a2, _b;
   if (!(pattern instanceof RegExp) || pattern.flags !== "") {
     return void 0;
   }
@@ -1946,7 +5732,7 @@ function getAsciiClass(pattern) {
     if (atom.capturing || atom.quantifier !== void 0 && quantifier !== void 0 || atom.value.value.length !== 1 || atom.value.value[0].value.length !== 1) {
       return void 0;
     }
-    quantifier = (_a = atom.quantifier) !== null && _a !== void 0 ? _a : quantifier;
+    quantifier = (_a2 = atom.quantifier) !== null && _a2 !== void 0 ? _a2 : quantifier;
     atom = atom.value.value[0].value[0];
   }
   if (atom.type !== "Set" || atom.complement || atom.quantifier !== void 0 && quantifier !== void 0) {
@@ -3339,7 +7125,7 @@ see: https://en.wikipedia.org/wiki/LL_parser#Left_factoring.`;
   },
   buildDuplicateRuleNameError(options) {
     let ruleName;
-    if (options.topLevelRule instanceof Rule) {
+    if (options.topLevelRule instanceof Rule2) {
       ruleName = options.topLevelRule.name;
     } else {
       ruleName = options.topLevelRule;
@@ -3774,7 +7560,7 @@ function nextPossibleTokensAfter(initialDef, tokenVector, tokMatcher, maxLookAhe
         ruleStack: currRuleStack,
         occurrenceStack: currOccurrenceStack
       });
-    } else if (prod instanceof Rule) {
+    } else if (prod instanceof Rule2) {
       possiblePaths.push(expandTopLevelRule(prod, currIdx, currRuleStack, currOccurrenceStack));
     } else {
       throw Error("non exhaustive match");
@@ -3842,10 +7628,10 @@ function buildAlternativesLookAheadFunc(alts, hasPredicates, tokenMatcher2, dyna
   if (hasPredicates) {
     return function(orAlts) {
       const predicates = orAlts.map((currAlt) => currAlt.GATE);
-      for (let t = 0; t < numOfAlts; t++) {
-        const currAlt = alts[t];
+      for (let t2 = 0; t2 < numOfAlts; t2++) {
+        const currAlt = alts[t2];
         const currNumOfPaths = currAlt.length;
-        const currPredicate = predicates[t];
+        const currPredicate = predicates[t2];
         if (currPredicate !== void 0 && currPredicate.call(this) === false) {
           continue;
         }
@@ -3858,7 +7644,7 @@ function buildAlternativesLookAheadFunc(alts, hasPredicates, tokenMatcher2, dyna
               continue nextPath;
             }
           }
-          return t;
+          return t2;
         }
       }
       return void 0;
@@ -3886,8 +7672,8 @@ function buildAlternativesLookAheadFunc(alts, hasPredicates, tokenMatcher2, dyna
     };
   } else {
     return function() {
-      for (let t = 0; t < numOfAlts; t++) {
-        const currAlt = alts[t];
+      for (let t2 = 0; t2 < numOfAlts; t2++) {
+        const currAlt = alts[t2];
         const currNumOfPaths = currAlt.length;
         nextPath: for (let j = 0; j < currNumOfPaths; j++) {
           const currPath = currAlt[j];
@@ -3898,7 +7684,7 @@ function buildAlternativesLookAheadFunc(alts, hasPredicates, tokenMatcher2, dyna
               continue nextPath;
             }
           }
-          return t;
+          return t2;
         }
       }
       return void 0;
@@ -4039,8 +7825,8 @@ function pathToHashKeys(path) {
     for (let j = 0; j < keys.length; j++) {
       const currShorterKey = keys[j];
       longerKeys.push(currShorterKey + "_" + tokType.tokenTypeIdx);
-      for (let t = 0; t < tokType.categoryMatches.length; t++) {
-        const categoriesKeySuffix = "_" + tokType.categoryMatches[t];
+      for (let t2 = 0; t2 < tokType.categoryMatches.length; t2++) {
+        const categoriesKeySuffix = "_" + tokType.categoryMatches[t2];
         longerKeys.push(currShorterKey + categoriesKeySuffix);
       }
     }
@@ -4557,8 +8343,8 @@ function resolveGrammar2(options) {
   return resolveGrammar(topRulesTable, actualOptions.errMsgProvider);
 }
 function validateGrammar2(options) {
-  var _a;
-  const errMsgProvider = (_a = options.errMsgProvider) !== null && _a !== void 0 ? _a : defaultGrammarValidatorErrorProvider;
+  var _a2;
+  const errMsgProvider = (_a2 = options.errMsgProvider) !== null && _a2 !== void 0 ? _a2 : defaultGrammarValidatorErrorProvider;
   return validateGrammar(options.rules, options.tokenTypes, errMsgProvider, options.grammarName);
 }
 
@@ -4856,10 +8642,10 @@ var Recoverable = class {
   }
 };
 function attemptInRepetitionRecovery(prodFunc, args, lookaheadFunc, dslMethodIdx, prodOccurrence, nextToksWalker, notStuck) {
-  var _a;
+  var _a2;
   var _b, _c;
   const key = dslMethodIdx | prodOccurrence;
-  const ruleCache = (_a = (_b = this.firstAfterRepMap)[_c = this.currRuleShortName]) !== null && _a !== void 0 ? _a : _b[_c] = [];
+  const ruleCache = (_a2 = (_b = this.firstAfterRepMap)[_c = this.currRuleShortName]) !== null && _a2 !== void 0 ? _a2 : _b[_c] = [];
   let firstAfterRepInfo = ruleCache[key];
   if (firstAfterRepInfo === void 0) {
     const currRuleName = this.getCurrRuleFullName();
@@ -4895,8 +8681,8 @@ var AT_LEAST_ONE_SEP_IDX = 6 << BITS_FOR_OCCURRENCE_IDX;
 // ../../node_modules/.bun/chevrotain@13.2.0/node_modules/chevrotain/lib/src/parse/grammar/llk_lookahead.js
 var LLkLookaheadStrategy = class {
   constructor(options) {
-    var _a;
-    this.maxLookahead = (_a = options === null || options === void 0 ? void 0 : options.maxLookahead) !== null && _a !== void 0 ? _a : DEFAULT_PARSER_CONFIG.maxLookahead;
+    var _a2;
+    this.maxLookahead = (_a2 = options === null || options === void 0 ? void 0 : options.maxLookahead) !== null && _a2 !== void 0 ? _a2 : DEFAULT_PARSER_CONFIG.maxLookahead;
   }
   validate(options) {
     const leftRecursionErrors = this.validateNoLeftRecursion(options.rules);
@@ -5679,34 +9465,34 @@ var RecognizerApi = class {
   AT_LEAST_ONE_SEP9(options) {
     this.atLeastOneSepFirstInternal(9, options);
   }
-  RULE(name, implementation, config = DEFAULT_RULE_CONFIG) {
-    if (this.definedRulesNames.includes(name)) {
+  RULE(name2, implementation, config = DEFAULT_RULE_CONFIG) {
+    if (this.definedRulesNames.includes(name2)) {
       const errMsg = defaultGrammarValidatorErrorProvider.buildDuplicateRuleNameError({
-        topLevelRule: name,
+        topLevelRule: name2,
         grammarName: this.className
       });
       const error = {
         message: errMsg,
         type: ParserDefinitionErrorType.DUPLICATE_RULE_NAME,
-        ruleName: name
+        ruleName: name2
       };
       this.definitionErrors.push(error);
     }
-    this.definedRulesNames.push(name);
-    const ruleImplementation = this.defineRule(name, implementation, config);
-    this[name] = ruleImplementation;
+    this.definedRulesNames.push(name2);
+    const ruleImplementation = this.defineRule(name2, implementation, config);
+    this[name2] = ruleImplementation;
     return ruleImplementation;
   }
-  OVERRIDE_RULE(name, impl, config = DEFAULT_RULE_CONFIG) {
-    const ruleErrors = validateRuleIsOverridden(name, this.definedRulesNames, this.className);
+  OVERRIDE_RULE(name2, impl, config = DEFAULT_RULE_CONFIG) {
+    const ruleErrors = validateRuleIsOverridden(name2, this.definedRulesNames, this.className);
     this.definitionErrors = this.definitionErrors.concat(ruleErrors);
-    const ruleImplementation = this.defineRule(name, impl, config);
-    this[name] = ruleImplementation;
+    const ruleImplementation = this.defineRule(name2, impl, config);
+    this[name2] = ruleImplementation;
     return ruleImplementation;
   }
   BACKTRACK(grammarRule, args) {
-    var _a;
-    const ruleToCall = (_a = grammarRule.coreRule) !== null && _a !== void 0 ? _a : grammarRule;
+    var _a2;
+    const ruleToCall = (_a2 = grammarRule.coreRule) !== null && _a2 !== void 0 ? _a2 : grammarRule;
     return function() {
       this.isBackTrackingStack.push(1);
       const orgState = this.saveRecogState();
@@ -5785,8 +9571,8 @@ var RecognizerEngine = class {
     const noTokenCategoriesUsed = allTokenTypes.every(
       // intentional "==" to also cover "undefined"
       (tokenConstructor) => {
-        var _a;
-        return ((_a = tokenConstructor.categoryMatches) === null || _a === void 0 ? void 0 : _a.length) == 0;
+        var _a2;
+        return ((_a2 = tokenConstructor.categoryMatches) === null || _a2 === void 0 ? void 0 : _a2.length) == 0;
       }
     );
     this.tokenMatcher = noTokenCategoriesUsed ? tokenStructuredMatcherNoCategories : tokenStructuredMatcher;
@@ -6411,10 +10197,10 @@ var GastRecorder = class {
   LA_RECORD(howMuch) {
     return END_OF_FILE;
   }
-  topLevelRuleRecord(name, def) {
+  topLevelRuleRecord(name2, def) {
     try {
-      const newTopLevelRule = new Rule({ definition: [], name });
-      newTopLevelRule.name = name;
+      const newTopLevelRule = new Rule2({ definition: [], name: name2 });
+      newTopLevelRule.name = name2;
       this.recordingProdStack.push(newTopLevelRule);
       def.call(this);
       this.recordingProdStack.pop();
@@ -6635,7 +10421,7 @@ var ParserDefinitionErrorType;
   ParserDefinitionErrorType2[ParserDefinitionErrorType2["TOO_MANY_ALTS"] = 12] = "TOO_MANY_ALTS";
   ParserDefinitionErrorType2[ParserDefinitionErrorType2["CUSTOM_LOOKAHEAD_VALIDATION"] = 13] = "CUSTOM_LOOKAHEAD_VALIDATION";
 })(ParserDefinitionErrorType || (ParserDefinitionErrorType = {}));
-var Parser = class _Parser {
+var Parser2 = class _Parser {
   /**
    *  @deprecated use the **instance** method with the same name instead
    */
@@ -6698,8 +10484,8 @@ var Parser = class _Parser {
           });
         }
         this.TRACE_INIT("ComputeLookaheadFunctions", () => {
-          var _a, _b;
-          (_b = (_a = this.lookaheadStrategy).initialize) === null || _b === void 0 ? void 0 : _b.call(_a, {
+          var _a2, _b;
+          (_b = (_a2 = this.lookaheadStrategy).initialize) === null || _b === void 0 ? void 0 : _b.call(_a2, {
             rules: Object.values(this.gastProductionsCache)
           });
           this.preComputeLookaheadFunctions(Object.values(this.gastProductionsCache));
@@ -6730,8 +10516,8 @@ var Parser = class _Parser {
     this.skipValidations = Object.hasOwn(config, "skipValidations") ? config.skipValidations : DEFAULT_PARSER_CONFIG.skipValidations;
   }
 };
-Parser.DEFER_DEFINITION_ERRORS_HANDLING = false;
-applyMixins(Parser, [
+Parser2.DEFER_DEFINITION_ERRORS_HANDLING = false;
+applyMixins(Parser2, [
   Recoverable,
   LooksAhead,
   TreeBuilder,
@@ -6777,37 +10563,37 @@ var stepLexer = new Lexer(allTokens, {
   positionTracking: "onlyOffset"
 });
 function findBraceBeforeSigil(tokens, from) {
-  var _a;
+  var _a2;
   for (let i = from; i < tokens.length; i++) {
     const tok = tokens[i];
     if (tok === void 0) break;
     if (tok.tokenType === LBrace) return i;
     if (tok.tokenType === AtSign || tok.tokenType === HashSign) return -1;
-    if (tok.tokenType === TildeSign && i > from && ((_a = tokens[i - 1]) == null ? void 0 : _a.tokenType) === Space)
+    if (tok.tokenType === TildeSign && i > from && ((_a2 = tokens[i - 1]) == null ? void 0 : _a2.tokenType) === Space)
       return -1;
   }
   return -1;
 }
 function findMatchingRBrace(tokens, from) {
-  var _a;
+  var _a2;
   for (let i = from; i < tokens.length; i++) {
-    if (((_a = tokens[i]) == null ? void 0 : _a.tokenType) === RBrace) return i;
+    if (((_a2 = tokens[i]) == null ? void 0 : _a2.tokenType) === RBrace) return i;
   }
   return -1;
 }
 function collectImages(tokens, start, end) {
-  var _a, _b;
+  var _a2, _b;
   let s = "";
   for (let i = start; i < end; i++) {
-    s += (_b = (_a = tokens[i]) == null ? void 0 : _a.image) != null ? _b : "";
+    s += (_b = (_a2 = tokens[i]) == null ? void 0 : _a2.image) != null ? _b : "";
   }
   return s;
 }
 function parseQuantityBody(tokens, start, end) {
-  var _a;
+  var _a2;
   let percentIdx = -1;
   for (let i = start; i < end; i++) {
-    if (((_a = tokens[i]) == null ? void 0 : _a.tokenType) === Percent) {
+    if (((_a2 = tokens[i]) == null ? void 0 : _a2.tokenType) === Percent) {
       percentIdx = i;
       break;
     }
@@ -6839,15 +10625,15 @@ function parseTokenStream(tokens, ingredients, cookware, timers) {
         const rbraceIdx = findMatchingRBrace(tokens, braceIdx + 1);
         if (rbraceIdx !== -1) {
           flush();
-          const name = collectImages(tokens, pos + 1, braceIdx).trim();
+          const name2 = collectImages(tokens, pos + 1, braceIdx).trim();
           const { quantity, units } = parseQuantityBody(
             tokens,
             braceIdx + 1,
             rbraceIdx
           );
-          const ingredient = { name, quantity, units };
+          const ingredient = { name: name2, quantity, units };
           ingredients.push(ingredient);
-          result.push({ type: "ingredient", value: name, ref: ingredient });
+          result.push({ type: "ingredient", value: name2, ref: ingredient });
           pos = rbraceIdx + 1;
           continue;
         }
@@ -6855,10 +10641,10 @@ function parseTokenStream(tokens, ingredients, cookware, timers) {
       const nextTok = tokens[pos + 1];
       if ((nextTok == null ? void 0 : nextTok.tokenType) === Word) {
         flush();
-        const name = nextTok.image;
-        const ingredient = { name, quantity: "", units: "" };
+        const name2 = nextTok.image;
+        const ingredient = { name: name2, quantity: "", units: "" };
         ingredients.push(ingredient);
-        result.push({ type: "ingredient", value: name, ref: ingredient });
+        result.push({ type: "ingredient", value: name2, ref: ingredient });
         pos += 2;
         continue;
       }
@@ -6872,10 +10658,10 @@ function parseTokenStream(tokens, ingredients, cookware, timers) {
         const rbraceIdx = findMatchingRBrace(tokens, braceIdx + 1);
         if (rbraceIdx !== -1) {
           flush();
-          const name = collectImages(tokens, pos + 1, braceIdx).trim();
-          const cw = { name };
+          const name2 = collectImages(tokens, pos + 1, braceIdx).trim();
+          const cw = { name: name2 };
           cookware.push(cw);
-          result.push({ type: "cookware", value: name, ref: cw });
+          result.push({ type: "cookware", value: name2, ref: cw });
           pos = rbraceIdx + 1;
           continue;
         }
@@ -6883,10 +10669,10 @@ function parseTokenStream(tokens, ingredients, cookware, timers) {
       const nextTok = tokens[pos + 1];
       if ((nextTok == null ? void 0 : nextTok.tokenType) === Word) {
         flush();
-        const name = nextTok.image;
-        const cw = { name };
+        const name2 = nextTok.image;
+        const cw = { name: name2 };
         cookware.push(cw);
-        result.push({ type: "cookware", value: name, ref: cw });
+        result.push({ type: "cookware", value: name2, ref: cw });
         pos += 2;
         continue;
       }
@@ -6900,13 +10686,13 @@ function parseTokenStream(tokens, ingredients, cookware, timers) {
         const rbraceIdx = findMatchingRBrace(tokens, braceIdx + 1);
         if (rbraceIdx !== -1) {
           flush();
-          const name = collectImages(tokens, pos + 1, braceIdx).trim();
+          const name2 = collectImages(tokens, pos + 1, braceIdx).trim();
           const { quantity, units } = parseQuantityBody(
             tokens,
             braceIdx + 1,
             rbraceIdx
           );
-          const timer2 = { name, quantity, units };
+          const timer2 = { name: name2, quantity, units };
           timers.push(timer2);
           result.push({
             type: "timer",
@@ -6935,7 +10721,7 @@ function tokenizeCooklangLine(line, ingredients, cookware, timers) {
   return parseTokenStream(lexResult.tokens, ingredients, cookware, timers);
 }
 function parseFrontmatter(text) {
-  var _a;
+  var _a2;
   const metadata = {};
   const trimmed = text.trimStart();
   if (!trimmed.startsWith("---")) {
@@ -6963,7 +10749,7 @@ function parseFrontmatter(text) {
     const match = /^([\w.-]+):\s*(.*)/.exec(line);
     if ((match == null ? void 0 : match[1]) !== void 0) {
       currentKey = match[1];
-      const val = (_a = match[2]) != null ? _a : "";
+      const val = (_a2 = match[2]) != null ? _a2 : "";
       if (val === "|" || val === ">") {
         inMultiline = true;
         currentValue = "";
@@ -6983,8 +10769,8 @@ function parseSectionHeader(line) {
   while (start < line.length && line[start] === "=") start++;
   let end = line.length;
   while (end > start && line[end - 1] === "=") end--;
-  const name = line.slice(start, end).trim();
-  return name || null;
+  const name2 = line.slice(start, end).trim();
+  return name2 || null;
 }
 function hasCooklangSyntax(body) {
   return /@\w|#\w|~[\w{]/.test(body);
@@ -7017,7 +10803,7 @@ function parseCooklangBody(body) {
   return { ingredients, cookware, timers, sections };
 }
 function parsePlainTextBody(body) {
-  var _a, _b, _c;
+  var _a2, _b, _c;
   const ingredients = [];
   const cookware = [];
   const timers = [];
@@ -7046,10 +10832,10 @@ function parsePlainTextBody(body) {
         trimmed
       );
       if (ingMatch) {
-        const qty = ((_a = ingMatch[1]) != null ? _a : "").trim();
+        const qty = ((_a2 = ingMatch[1]) != null ? _a2 : "").trim();
         const unit = ((_b = ingMatch[2]) != null ? _b : "").trim();
-        const name = ((_c = ingMatch[3]) != null ? _c : trimmed).trim();
-        const ingredient = { name, quantity: qty, units: unit };
+        const name2 = ((_c = ingMatch[3]) != null ? _c : trimmed).trim();
+        const ingredient = { name: name2, quantity: qty, units: unit };
         ingredients.push(ingredient);
         currentSection.steps.push({
           tokens: [{ type: "ingredient", value: trimmed, ref: ingredient }],
@@ -7164,20 +10950,20 @@ function renderMetadata(container, recipe) {
   const cuisine = field(metadata, "cuisine");
   const category = field(metadata, "category");
   if (cuisine !== void 0 || category !== void 0) {
-    const tags = card.createDiv({ cls: "cook-tags" });
+    const tags2 = card.createDiv({ cls: "cook-tags" });
     if (cuisine !== void 0)
-      tags.createSpan({ text: cuisine, cls: "cook-tag" });
+      tags2.createSpan({ text: cuisine, cls: "cook-tag" });
     if (category !== void 0)
-      tags.createSpan({ text: category, cls: "cook-tag" });
+      tags2.createSpan({ text: category, cls: "cook-tag" });
   }
 }
 function renderImage(container, recipe) {
-  var _a;
+  var _a2;
   const imageUrl = field(recipe.metadata, "image.url");
   if (imageUrl !== void 0) {
     const imgWrapper = container.createDiv({ cls: "cook-image-wrapper" });
     imgWrapper.createEl("img", {
-      attr: { src: imageUrl, alt: (_a = field(recipe.metadata, "title")) != null ? _a : "Recipe" },
+      attr: { src: imageUrl, alt: (_a2 = field(recipe.metadata, "title")) != null ? _a2 : "Recipe" },
       cls: "cook-image"
     });
   }
@@ -7211,7 +10997,7 @@ function renderIngredientsList(container, section, settings) {
   const list = container.createEl("ul", { cls: "cook-ingredients-list" });
   for (const step of section.steps) {
     const hasIngredient = step.tokens.some(
-      (t) => t.type === "ingredient" && t.ref != null && "quantity" in t.ref
+      (t2) => t2.type === "ingredient" && t2.ref != null && "quantity" in t2.ref
     );
     if (!hasIngredient) {
       const li2 = list.createEl("li", { cls: "cook-ingredient-subheader" });
@@ -7252,8 +11038,8 @@ function renderDirections(container, section, _recipe, settings) {
     stepNum++;
     const stepEl = dirEl.createDiv({ cls: "cook-direction-step" });
     stepEl.createSpan({ text: String(stepNum), cls: "cook-step-number" });
-    const content = stepEl.createDiv({ cls: "cook-step-content" });
-    const p = content.createEl("p");
+    const content2 = stepEl.createDiv({ cls: "cook-step-content" });
+    const p = content2.createEl("p");
     const tokens = [...step.tokens];
     const first2 = tokens[0];
     if ((first2 == null ? void 0 : first2.type) === "text") {
@@ -7325,8 +11111,8 @@ var CookView = class extends import_obsidian.TextFileView {
     return VIEW_TYPE_COOK;
   }
   getDisplayText() {
-    var _a, _b;
-    return (_b = (_a = this.file) == null ? void 0 : _a.basename) != null ? _b : "Recipe";
+    var _a2, _b;
+    return (_b = (_a2 = this.file) == null ? void 0 : _a2.basename) != null ? _b : "Recipe";
   }
   getIcon() {
     return "chef-hat";
@@ -7341,8 +11127,8 @@ var CookView = class extends import_obsidian.TextFileView {
     this.updateVisibility();
   }
   async onClose() {
-    var _a;
-    (_a = this.editor) == null ? void 0 : _a.destroy();
+    var _a2;
+    (_a2 = this.editor) == null ? void 0 : _a2.destroy();
     this.editor = null;
     await super.onClose();
   }
@@ -7377,9 +11163,9 @@ var CookView = class extends import_obsidian.TextFileView {
     }
     this.previewEl.empty();
   }
-  createEditor(content) {
+  createEditor(content2) {
     this.editorEl.empty();
-    const updateListener = import_view.EditorView.updateListener.of((update) => {
+    const updateListener = import_view2.EditorView.updateListener.of((update) => {
       if (update.docChanged) {
         this.data = update.state.doc.toString();
         this.requestSave();
@@ -7388,17 +11174,18 @@ var CookView = class extends import_obsidian.TextFileView {
         }
       }
     });
-    const state = import_state.EditorState.create({
-      doc: content,
+    const state = import_state2.EditorState.create({
+      doc: content2,
       extensions: [
         cookLanguage,
+        cookHighlighting,
         (0, import_commands.history)(),
-        import_view.keymap.of([...import_commands.defaultKeymap, ...import_commands.historyKeymap]),
+        import_view2.keymap.of([...import_commands.defaultKeymap, ...import_commands.historyKeymap]),
         updateListener,
-        import_view.EditorView.lineWrapping
+        import_view2.EditorView.lineWrapping
       ]
     });
-    this.editor = new import_view.EditorView({
+    this.editor = new import_view2.EditorView({
       state,
       parent: this.editorEl
     });
@@ -7416,12 +11203,14 @@ var CookView = class extends import_obsidian.TextFileView {
     this.updateToggleIcon();
   }
   updateVisibility() {
+    var _a2;
     if (this.isPreview) {
       this.editorEl.hide();
       this.previewEl.show();
     } else {
       this.editorEl.show();
       this.previewEl.hide();
+      (_a2 = this.editor) == null ? void 0 : _a2.requestMeasure();
     }
   }
   updateToggleIcon() {

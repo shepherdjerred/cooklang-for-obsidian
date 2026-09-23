@@ -3807,8 +3807,7 @@ function frontmatterToken(stream, state) {
   if (metadataDelimiter !== null) return metadataDelimiter;
   if (!state.inFrontmatter) return null;
   const metadataKey = frontmatterKeyToken(stream, state);
-  if (metadataKey !== null) return metadataKey;
-  return frontmatterValueToken(stream, state);
+  return metadataKey != null ? metadataKey : frontmatterValueToken(stream, state);
 }
 function cooklangToken(stream, state) {
   if (state.lineStart && stream.match(/^=+\s*.+/)) {
@@ -10715,10 +10714,7 @@ function parseTokenStream(tokens, ingredients, cookware, timers) {
 }
 function tokenizeCooklangLine(line, ingredients, cookware, timers) {
   const lexResult = stepLexer.tokenize(line);
-  if (lexResult.errors.length > 0) {
-    return [{ type: "text", value: line }];
-  }
-  return parseTokenStream(lexResult.tokens, ingredients, cookware, timers);
+  return lexResult.errors.length > 0 ? [{ type: "text", value: line }] : parseTokenStream(lexResult.tokens, ingredients, cookware, timers);
 }
 function parseFrontmatter(text) {
   var _a2;
@@ -10883,10 +10879,8 @@ function renderRecipe(container, recipe, settings) {
   renderMetadata(container, recipe);
   renderImage(container, recipe);
   const body = container.createDiv({ cls: "cook-body" });
-  if (recipe.sections.length > 0) {
-    for (const section of recipe.sections) {
-      renderSection(body, section, recipe, settings);
-    }
+  for (const section of recipe.sections) {
+    renderSection(body, section, recipe, settings);
   }
 }
 function field(metadata, key) {
@@ -11133,10 +11127,7 @@ var CookView = class extends import_obsidian.TextFileView {
     await super.onClose();
   }
   getViewData() {
-    if (this.editor) {
-      return this.editor.state.doc.toString();
-    }
-    return this.data;
+    return this.editor ? this.editor.state.doc.toString() : this.data;
   }
   setViewData(data, _clear) {
     this.data = data;

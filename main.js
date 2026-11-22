@@ -10922,7 +10922,7 @@ function renderRecipe(container, recipe, settings) {
 }
 function field(metadata, key) {
   const value = metadata[key];
-  return value !== void 0 && value !== "" ? value : void 0;
+  return value === void 0 || value === "" ? void 0 : value;
 }
 function renderMetadata(container, recipe) {
   const { metadata } = recipe;

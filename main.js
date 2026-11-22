@@ -33,7 +33,7 @@ var import_view2 = require("@codemirror/view");
 var import_state2 = require("@codemirror/state");
 var import_commands = require("@codemirror/commands");
 
-// ../../node_modules/.bun/@lezer+common@1.5.2/node_modules/@lezer/common/dist/index.js
+// ../../node_modules/.bun/@lezer+common@1.5.6/node_modules/@lezer/common/dist/index.js
 var DefaultBufferLength = 1024;
 var nextPropID = 0;
 var Range = class {
@@ -1315,23 +1315,31 @@ function buildTree(data) {
       cursor.next();
       let localChildren = [], localPositions = [];
       let localInRepeat = id >= minRepeatType ? id : -1;
-      let lastGroup = 0, lastEnd = end;
+      let lastGroup = 0, lastEnd = end, groupLookAhead = lookAheadAtStart;
       while (cursor.pos > endPos) {
         if (localInRepeat >= 0 && cursor.id == localInRepeat && cursor.size >= 0) {
           if (cursor.end <= lastEnd - maxBufferLength) {
-            makeRepeatLeaf(localChildren, localPositions, start, lastGroup, cursor.end, lastEnd, localInRepeat, lookAheadAtStart, contextAtStart);
+            makeRepeatLeaf(localChildren, localPositions, start, lastGroup, cursor.end, lastEnd, localInRepeat, groupLookAhead, contextAtStart);
             lastGroup = localChildren.length;
             lastEnd = cursor.end;
+            groupLookAhead = lookAhead;
           }
           cursor.next();
         } else if (depth > 2500) {
           takeFlatNode(start, endPos, localChildren, localPositions);
         } else {
+          if (localInRepeat >= 0 && cursor.size == -1 && reused[cursor.id].type == nodeSet2.types[localInRepeat]) {
+            if (lastGroup < localChildren.length)
+              makeRepeatLeaf(localChildren, localPositions, start, lastGroup, cursor.end, lastEnd, localInRepeat, groupLookAhead, contextAtStart);
+            lastGroup = localChildren.length + 1;
+            lastEnd = cursor.start;
+            groupLookAhead = lookAhead;
+          }
           takeNode(start, endPos, localChildren, localPositions, localInRepeat, depth + 1);
         }
       }
       if (localInRepeat >= 0 && lastGroup > 0 && lastGroup < localChildren.length)
-        makeRepeatLeaf(localChildren, localPositions, start, lastGroup, start, lastEnd, localInRepeat, lookAheadAtStart, contextAtStart);
+        makeRepeatLeaf(localChildren, localPositions, start, lastGroup, start, lastEnd, localInRepeat, groupLookAhead, contextAtStart);
       localChildren.reverse();
       localPositions.reverse();
       if (localInRepeat > -1 && lastGroup > 0) {
@@ -1381,7 +1389,7 @@ function buildTree(data) {
         if (!lastI && last.type == type && last.length == length2)
           return last;
         if (lookAheadProp = last.prop(NodeProp.lookAhead))
-          lookAhead2 = positions2[lastI] + last.length + lookAheadProp;
+          lookAhead2 = positions2[lastI] + last.length + lookAheadProp - length2;
       }
       return makeTree(type, children2, positions2, length2, lookAhead2, contextHash2);
     };
@@ -1593,7 +1601,7 @@ var TreeFragment = class _TreeFragment {
           let cut = nextF;
           if (pos >= cut.from || nextPos <= cut.to || off) {
             let fFrom = Math.max(cut.from, pos) - off, fTo = Math.min(cut.to, nextPos) - off;
-            cut = fFrom >= fTo ? null : new _TreeFragment(fFrom, fTo, cut.tree, cut.offset + off, cI > 0, !!nextC);
+            cut = fFrom >= fTo ? null : new _TreeFragment(fFrom, fTo, cut.tree, cut.offset + off, cut.openStart || cI > 0, cut.openEnd || !!nextC);
           }
           if (cut)
             result.push(cut);
@@ -1657,11 +1665,11 @@ var StringInput = class {
 };
 var stoppedInner = new NodeProp({ perNode: true });
 
-// ../../node_modules/.bun/@codemirror+language@6.12.4/node_modules/@codemirror/language/dist/index.js
+// ../../node_modules/.bun/@codemirror+language@6.13.1/node_modules/@codemirror/language/dist/index.js
 var import_state = require("@codemirror/state");
 var import_view = require("@codemirror/view");
 
-// ../../node_modules/.bun/@lezer+highlight@1.2.3/node_modules/@lezer/highlight/dist/index.js
+// ../../node_modules/.bun/@lezer+highlight@1.2.5/node_modules/@lezer/highlight/dist/index.js
 var nextTagID = 0;
 var Tag = class _Tag {
   /**
@@ -1794,7 +1802,7 @@ var ruleNodeProp = new NodeProp({
   combine(a, b) {
     let cur, root, take;
     while (a || b) {
-      if (!a || b && a.depth >= b.depth) {
+      if (!a || b && a.depth <= b.depth) {
         take = b;
         b = b.next;
       } else {
@@ -2385,7 +2393,7 @@ var classHighlighter = tagHighlighter([
   { tag: tags.punctuation, class: "tok-punctuation" }
 ]);
 
-// ../../node_modules/.bun/style-mod@4.1.3/node_modules/style-mod/src/style-mod.js
+// ../../node_modules/.bun/style-mod@4.1.5/node_modules/style-mod/src/style-mod.js
 var C = "\u037C";
 var COUNT = typeof Symbol == "undefined" ? "__" + C : Symbol.for(C);
 var SET = typeof Symbol == "undefined" ? "__styleSet" + Math.floor(Math.random() * 1e8) : /* @__PURE__ */ Symbol("styleSet");
@@ -2399,9 +2407,6 @@ var StyleModule = class {
   constructor(spec, options) {
     this.rules = [];
     let { finish } = options || {};
-    function splitSelector(selector) {
-      return /^@/.test(selector) ? [selector] : selector.split(/,\s*/);
-    }
     function render(selectors, spec2, target, isKeyframes) {
       let local = [], isAt = /^@(\w+)\b/.exec(selectors[0]), keyframes = isAt && isAt[1] == "keyframes";
       if (isAt && spec2 == null) return target.push(selectors[0] + ";");
@@ -2417,7 +2422,8 @@ var StyleModule = class {
           if (!isAt) throw new RangeError("The value of a property (" + prop + ") should be a primitive value.");
           render(splitSelector(prop), value, local, keyframes);
         } else if (value != null) {
-          local.push(prop.replace(/_.*/, "").replace(/[A-Z]/g, (l) => "-" + l.toLowerCase()) + ": " + value + ";");
+          if (!/^--/.test(prop)) prop = prop.replace(/_.*/, "").replace(/[A-Z]/g, (l) => "-" + l.toLowerCase());
+          local.push(prop + ": " + value + ";");
         }
       }
       if (local.length || keyframes) {
@@ -2461,6 +2467,30 @@ var StyleModule = class {
     set.mount(Array.isArray(modules) ? modules : [modules], root);
   }
 };
+function splitSelector(selector) {
+  if (/^@/.test(selector)) return [selector];
+  let result = [], depth = 0, inStr = null, lastNonSpace = 0, cut = 0;
+  for (let i = 0; i < selector.length; i++) {
+    let next = selector[i];
+    if (next == "\\") {
+      i++;
+    } else if (next == '"' || next == "'") {
+      if (next == inStr) inStr = false;
+      else if (!inStr) inStr = next;
+    } else if ((next == "[" || next == "(") && !inStr) {
+      depth++;
+    } else if ((next == "]" || next == ")") && !inStr) {
+      depth--;
+    } else if (next == "," && !depth && !inStr) {
+      result.push(selector.slice(cut, lastNonSpace));
+      cut = i + 1;
+    }
+    if (/\S/.test(next)) lastNonSpace = i + 1;
+    else if (i == cut) cut++;
+  }
+  result.push(selector.slice(cut, lastNonSpace));
+  return result;
+}
 var adoptedSet = /* @__PURE__ */ new Map();
 var StyleSet = class {
   constructor(root, nonce) {
@@ -2480,15 +2510,18 @@ var StyleSet = class {
   mount(modules, root) {
     let sheet = this.sheet;
     let pos = 0, j = 0;
+    let changed = false;
     for (let i = 0; i < modules.length; i++) {
       let mod = modules[i], index = this.modules.indexOf(mod);
       if (index < j && index > -1) {
         this.modules.splice(index, 1);
+        changed = true;
         j--;
         index = -1;
       }
       if (index == -1) {
         this.modules.splice(j++, 0, mod);
+        changed = true;
         if (sheet) for (let k = 0; k < mod.rules.length; k++)
           sheet.insertRule(mod.rules[k], pos++);
       } else {
@@ -2501,10 +2534,12 @@ var StyleSet = class {
       if (root.adoptedStyleSheets.indexOf(this.sheet) < 0)
         root.adoptedStyleSheets = [this.sheet, ...root.adoptedStyleSheets];
     } else {
-      let text = "";
-      for (let i = 0; i < this.modules.length; i++)
-        text += this.modules[i].getRules() + "\n";
-      this.styleTag.textContent = text;
+      if (changed) {
+        let text = "";
+        for (let i = 0; i < this.modules.length; i++)
+          text += this.modules[i].getRules() + "\n";
+        this.styleTag.textContent = text;
+      }
       let target = root.head || root;
       if (this.styleTag.parentNode != target)
         target.insertBefore(this.styleTag, target.firstChild);
@@ -2516,7 +2551,178 @@ var StyleSet = class {
   }
 };
 
-// ../../node_modules/.bun/@codemirror+language@6.12.4/node_modules/@codemirror/language/dist/index.js
+// ../../node_modules/.bun/@codemirror+streamparser@6.0.0/node_modules/@codemirror/streamparser/dist/index.js
+function countCol(string2, end, tabSize, startIndex = 0, startValue = 0) {
+  if (end == null) {
+    end = string2.search(/[^\s\u00a0]/);
+    if (end == -1)
+      end = string2.length;
+  }
+  let n = startValue;
+  for (let i = startIndex; i < end; i++) {
+    if (string2.charCodeAt(i) == 9)
+      n += tabSize - n % tabSize;
+    else
+      n++;
+  }
+  return n;
+}
+var StringStream = class {
+  /**
+  Create a stream.
+  */
+  constructor(string2, tabSize, indentUnit2, overrideIndent) {
+    this.string = string2;
+    this.tabSize = tabSize;
+    this.indentUnit = indentUnit2;
+    this.overrideIndent = overrideIndent;
+    this.pos = 0;
+    this.start = 0;
+    this.lastColumnPos = 0;
+    this.lastColumnValue = 0;
+  }
+  /**
+  True if we are at the end of the line.
+  */
+  eol() {
+    return this.pos >= this.string.length;
+  }
+  /**
+  True if we are at the start of the line.
+  */
+  sol() {
+    return this.pos == 0;
+  }
+  /**
+  Get the next code unit after the current position, or undefined
+  if we're at the end of the line.
+  */
+  peek() {
+    return this.string.charAt(this.pos) || void 0;
+  }
+  /**
+  Read the next code unit and advance `this.pos`.
+  */
+  next() {
+    if (this.pos < this.string.length)
+      return this.string.charAt(this.pos++);
+  }
+  /**
+  Match the next character against the given string, regular
+  expression, or predicate. Consume and return it if it matches.
+  */
+  eat(match) {
+    let ch = this.string.charAt(this.pos);
+    let ok;
+    if (typeof match == "string")
+      ok = ch == match;
+    else
+      ok = ch && (match instanceof RegExp ? match.test(ch) : match(ch));
+    if (ok) {
+      ++this.pos;
+      return ch;
+    }
+  }
+  /**
+  Continue matching characters that match the given string,
+  regular expression, or predicate function. Return true if any
+  characters were consumed.
+  */
+  eatWhile(match) {
+    let start = this.pos;
+    while (this.eat(match)) {
+    }
+    return this.pos > start;
+  }
+  /**
+  Consume whitespace ahead of `this.pos`. Return true if any was
+  found.
+  */
+  eatSpace() {
+    let start = this.pos;
+    while (/[\s\u00a0]/.test(this.string.charAt(this.pos)))
+      ++this.pos;
+    return this.pos > start;
+  }
+  /**
+  Move to the end of the line.
+  */
+  skipToEnd() {
+    this.pos = this.string.length;
+  }
+  /**
+  Move to directly before the given character, if found on the
+  current line.
+  */
+  skipTo(ch) {
+    let found = this.string.indexOf(ch, this.pos);
+    if (found > -1) {
+      this.pos = found;
+      return true;
+    }
+  }
+  /**
+  Move back `n` characters.
+  */
+  backUp(n) {
+    this.pos -= n;
+  }
+  /**
+  Get the column position at `this.pos`.
+  */
+  column() {
+    if (this.lastColumnPos < this.start) {
+      this.lastColumnValue = countCol(this.string, this.start, this.tabSize, this.lastColumnPos, this.lastColumnValue);
+      this.lastColumnPos = this.start;
+    }
+    return this.lastColumnValue;
+  }
+  /**
+  Get the indentation column of the current line.
+  */
+  indentation() {
+    var _a2;
+    return (_a2 = this.overrideIndent) !== null && _a2 !== void 0 ? _a2 : countCol(this.string, null, this.tabSize);
+  }
+  /**
+  Match the input against the given string or regular expression
+  (which should start with a `^`). Return true or the regexp match
+  if it matches.
+  
+  Unless `consume` is set to `false`, this will move `this.pos`
+  past the matched text.
+  
+  When matching a string `caseInsensitive` can be set to true to
+  make the match case-insensitive.
+  */
+  match(pattern, consume, caseInsensitive) {
+    if (typeof pattern == "string") {
+      let cased = (str) => caseInsensitive ? str.toLowerCase() : str;
+      let substr = this.string.substr(this.pos, pattern.length);
+      if (cased(substr) == cased(pattern)) {
+        if (consume !== false)
+          this.pos += pattern.length;
+        return true;
+      } else
+        return null;
+    } else {
+      let match = this.string.slice(this.pos).match(pattern);
+      if (match && match.index > 0)
+        return null;
+      if (match && consume !== false)
+        this.pos += match[0].length;
+      return match;
+    }
+  }
+  /**
+  Get the current token.
+  */
+  current() {
+    return this.string.slice(this.start, this.pos);
+  }
+};
+
+// ../../node_modules/.bun/@codemirror+language@6.13.1/node_modules/@codemirror/language/dist/index.js
 var _a;
 var languageDataProp = /* @__PURE__ */ new NodeProp();
 function defineLanguageFacet(baseData) {
@@ -3210,175 +3416,6 @@ var defaultHighlightStyle = /* @__PURE__ */ HighlightStyle.define([
     color: "#f00"
   }
 ]);
-function countCol(string2, end, tabSize, startIndex = 0, startValue = 0) {
-  if (end == null) {
-    end = string2.search(/[^\s\u00a0]/);
-    if (end == -1)
-      end = string2.length;
-  }
-  let n = startValue;
-  for (let i = startIndex; i < end; i++) {
-    if (string2.charCodeAt(i) == 9)
-      n += tabSize - n % tabSize;
-    else
-      n++;
-  }
-  return n;
-}
-var StringStream = class {
-  /**
-  Create a stream.
-  */
-  constructor(string2, tabSize, indentUnit2, overrideIndent) {
-    this.string = string2;
-    this.tabSize = tabSize;
-    this.indentUnit = indentUnit2;
-    this.overrideIndent = overrideIndent;
-    this.pos = 0;
-    this.start = 0;
-    this.lastColumnPos = 0;
-    this.lastColumnValue = 0;
-  }
-  /**
-  True if we are at the end of the line.
-  */
-  eol() {
-    return this.pos >= this.string.length;
-  }
-  /**
-  True if we are at the start of the line.
-  */
-  sol() {
-    return this.pos == 0;
-  }
-  /**
-  Get the next code unit after the current position, or undefined
-  if we're at the end of the line.
-  */
-  peek() {
-    return this.string.charAt(this.pos) || void 0;
-  }
-  /**
-  Read the next code unit and advance `this.pos`.
-  */
-  next() {
-    if (this.pos < this.string.length)
-      return this.string.charAt(this.pos++);
-  }
-  /**
-  Match the next character against the given string, regular
-  expression, or predicate. Consume and return it if it matches.
-  */
-  eat(match) {
-    let ch = this.string.charAt(this.pos);
-    let ok;
-    if (typeof match == "string")
-      ok = ch == match;
-    else
-      ok = ch && (match instanceof RegExp ? match.test(ch) : match(ch));
-    if (ok) {
-      ++this.pos;
-      return ch;
-    }
-  }
-  /**
-  Continue matching characters that match the given string,
-  regular expression, or predicate function. Return true if any
-  characters were consumed.
-  */
-  eatWhile(match) {
-    let start = this.pos;
-    while (this.eat(match)) {
-    }
-    return this.pos > start;
-  }
-  /**
-  Consume whitespace ahead of `this.pos`. Return true if any was
-  found.
-  */
-  eatSpace() {
-    let start = this.pos;
-    while (/[\s\u00a0]/.test(this.string.charAt(this.pos)))
-      ++this.pos;
-    return this.pos > start;
-  }
-  /**
-  Move to the end of the line.
-  */
-  skipToEnd() {
-    this.pos = this.string.length;
-  }
-  /**
-  Move to directly before the given character, if found on the
-  current line.
-  */
-  skipTo(ch) {
-    let found = this.string.indexOf(ch, this.pos);
-    if (found > -1) {
-      this.pos = found;
-      return true;
-    }
-  }
-  /**
-  Move back `n` characters.
-  */
-  backUp(n) {
-    this.pos -= n;
-  }
-  /**
-  Get the column position at `this.pos`.
-  */
-  column() {
-    if (this.lastColumnPos < this.start) {
-      this.lastColumnValue = countCol(this.string, this.start, this.tabSize, this.lastColumnPos, this.lastColumnValue);
-      this.lastColumnPos = this.start;
-    }
-    return this.lastColumnValue;
-  }
-  /**
-  Get the indentation column of the current line.
-  */
-  indentation() {
-    var _a2;
-    return (_a2 = this.overrideIndent) !== null && _a2 !== void 0 ? _a2 : countCol(this.string, null, this.tabSize);
-  }
-  /**
-  Match the input against the given string or regular expression
-  (which should start with a `^`). Return true or the regexp match
-  if it matches.
-  
-  Unless `consume` is set to `false`, this will move `this.pos`
-  past the matched text.
-  
-  When matching a string `caseInsensitive` can be set to true to
-  make the match case-insensitive.
-  */
-  match(pattern, consume, caseInsensitive) {
-    if (typeof pattern == "string") {
-      let cased = (str) => caseInsensitive ? str.toLowerCase() : str;
-      let substr = this.string.substr(this.pos, pattern.length);
-      if (cased(substr) == cased(pattern)) {
-        if (consume !== false)
-          this.pos += pattern.length;
-        return true;
-      } else
-        return null;
-    } else {
-      let match = this.string.slice(this.pos).match(pattern);
-      if (match && match.index > 0)
-        return null;
-      if (match && consume !== false)
-        this.pos += match[0].length;
-      return match;
-    }
-  }
-  /**
-  Get the current token.
-  */
-  current() {
-    return this.string.slice(this.start, this.pos);
-  }
-};
 function fullParser(spec) {
   return {
     name: spec.name || "",
